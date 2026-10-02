@@ -1,0 +1,82 @@
+/* Базовая тема приложения (Темная, современная) */
+QMainWindow {
+    background-color: #1e1e2e;
+}
+
+/* Боковая панель (Sidebar) */
+#sidebar {
+    background-color: #181825;
+    border-right: 1px solid #313244;
+}
+#sidebar QLabel {
+    color: #cdd6f4;
+    font-weight: bold;
+    font-size: 16px;
+    padding: 10px;
+}
+
+/* Зона чата (Scroll Area) */
+#chat_area {
+    background-color: #1e1e2e;
+    border: none;
+}
+QWidget#chat_content {
+    background-color: #1e1e2e;
+}
+
+/* Поле ввода */
+#input_field {
+    background-color: #313244;
+    color: #cdd6f4;
+    border: 2px solid #45475a;
+    border-radius: 20px; /* Сильное скругление */
+    padding: 10px 15px;
+    font-size: 14px;
+}
+#input_field:focus {
+    border: 2px solid #89b4fa;
+}
+
+/* Кнопки */
+#send_btn {
+    background-color: #89b4fa;
+    color: #11111b;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 20px;
+    font-weight: bold;
+    font-size: 14px;
+}
+#send_btn:hover {
+    background-color: #b4befe;
+}
+
+#menu_btn {
+    background-color: transparent;
+    color: #cdd6f4;
+    border: none;
+    border-radius: 10px;
+    font-size: 20px;
+    padding: 5px;
+}
+#menu_btn:hover {
+    background-color: #313244;
+}
+
+/* Сообщения (Баблы) */
+.QLabel[msg_type="user"] {
+    background-color: #89b4fa;
+    color: #11111b;
+    border-radius: 15px;
+    padding: 12px 16px;
+    margin: 5px;
+    font-size: 14px;
+}
+.QLabel[msg_type="ai"] {
+    background-color: #313244;
+    color: #cdd6f4;
+    border-radius: 15px;
+    padding: 12px 16px;
+    margin: 5px;
+    font-size: 14px;
+}
