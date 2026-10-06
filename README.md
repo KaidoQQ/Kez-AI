@@ -23,7 +23,7 @@
    ### 🎨 Modern Interface & Design
     Built with a focus on modern, fresh aesthetics (Modern UI):
     - **Animated Companion**: Features an animated visual representation of the AI. Includes smooth transitions
-  between idle states (`Анимация 1.mp4`) and active search states (`Анимация поиска 2.mp4`).
+  between idle states (`anim 1.mp4`) and active search states (`anim search 2.mp4`).
     - **Modern Chat UI**: Enjoy comfortable message bubbles, smooth scrolling, and an elegant input field.
     - **Interactive Sidebar**: A sleek, slide-out chat history panel on the left allows you to effortlessly switch
   between past conversations while keeping the main interface clean.
