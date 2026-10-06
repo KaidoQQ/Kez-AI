@@ -6,4 +6,5 @@ __pycache__/
 *.py[cod]
 *.sqlite3
 *.db
-info/
+info
+.vscode/

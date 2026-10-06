@@ -1,15 +1,17 @@
-/* Базовая тема приложения (Темная, современная) */
+/* Базовая тема приложения (Темно-синий + Кремовый акцент, глубокие темные тона) */
 QMainWindow {
-    background-color: #1e1e2e;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0B1120, stop:1 #172033); /* Глубокий темно-синий градиент */
 }
 
 /* Боковая панель (Sidebar) */
 #sidebar {
-    background-color: #181825;
-    border-right: 1px solid #313244;
+    background-color: rgba(7, 11, 20, 200); /* Почти черный/очень темно-синий */
+    border-right: 1px solid rgba(240, 234, 218, 50); /* Легкий кремовый контур */
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
 }
 #sidebar QLabel {
-    color: #cdd6f4;
+    color: #F0EADA; /* Кремовый текст */
     font-weight: bold;
     font-size: 16px;
     padding: 10px;
@@ -17,66 +19,101 @@ QMainWindow {
 
 /* Зона чата (Scroll Area) */
 #chat_area {
-    background-color: #1e1e2e;
+    background-color: transparent;
     border: none;
 }
 QWidget#chat_content {
-    background-color: #1e1e2e;
+    background-color: transparent;
 }
 
 /* Поле ввода */
 #input_field {
-    background-color: #313244;
-    color: #cdd6f4;
-    border: 2px solid #45475a;
-    border-radius: 20px; /* Сильное скругление */
+    background-color: rgba(23, 32, 51, 180);
+    color: #F0EADA; /* Кремовый текст */
+    border: 2px solid rgba(240, 234, 218, 50); /* Тусклая кремовая рамка */
+    border-radius: 22px; 
     padding: 10px 15px;
     font-size: 14px;
 }
 #input_field:focus {
-    border: 2px solid #89b4fa;
+    border: 2px solid rgba(240, 234, 218, 150); /* Яркая кремовая рамка при фокусе */
+    background-color: rgba(23, 32, 51, 220);
 }
 
 /* Кнопки */
-#send_btn {
-    background-color: #89b4fa;
-    color: #11111b;
+#send_btn, #action_btn {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(29, 43, 83, 220), stop:1 rgba(17, 26, 51, 220)); /* Выделяющийся темно-синий градиент */
+    color: #F0EADA; /* Кремовый текст */
     border: none;
-    border-radius: 20px;
-    padding: 10px 20px;
+    border-radius: 22px;
+    padding: 0px; /* Убрали отступы для квадратных кнопок */
     font-weight: bold;
     font-size: 14px;
+    border: 1px solid rgba(240, 234, 218, 30);
 }
-#send_btn:hover {
-    background-color: #b4befe;
+#send_btn:hover, #action_btn:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(39, 58, 113, 255), stop:1 rgba(23, 35, 70, 255));
+    border: 1px solid rgba(240, 234, 218, 80);
 }
 
 #menu_btn {
-    background-color: transparent;
-    color: #cdd6f4;
+    background-color: rgba(0, 0, 0, 0);
+    color: #F0EADA;
     border: none;
-    border-radius: 10px;
+    border-radius: 20px;
     font-size: 20px;
-    padding: 5px;
+    padding: 0px;
 }
 #menu_btn:hover {
-    background-color: #313244;
+    background-color: rgba(240, 234, 218, 20); /* Легкая кремовая подсветка */
 }
 
 /* Сообщения (Баблы) */
 .QLabel[msg_type="user"] {
-    background-color: #89b4fa;
-    color: #11111b;
-    border-radius: 15px;
-    padding: 12px 16px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(29, 43, 83, 230), stop:1 rgba(17, 26, 51, 230));
+    color: #F0EADA; /* Кремовый текст */
+    border: 1px solid rgba(240, 234, 218, 20);
+    border-radius: 18px;
+    padding: 12px 18px;
     margin: 5px;
     font-size: 14px;
 }
 .QLabel[msg_type="ai"] {
-    background-color: #313244;
-    color: #cdd6f4;
-    border-radius: 15px;
-    padding: 12px 16px;
+    background-color: rgba(30, 41, 59, 200); /* Приглушенный серо-синий */
+    color: #E2DFD2; /* Чуть более тусклый кремовый */
+    border: 1px solid rgba(240, 234, 218, 10);
+    border-radius: 18px;
+    padding: 12px 18px;
     margin: 5px;
     font-size: 14px;
+}
+
+/* Стили для новых кнопок */
+#settings_btn {
+    background-color: rgba(0, 0, 0, 0);
+    color: #F0EADA;
+    border: none;
+    border-radius: 20px;
+    font-size: 20px;
+    padding: 0px;
+}
+#settings_btn:hover {
+    background-color: rgba(240, 234, 218, 20);
+}
+
+#new_chat_btn {
+    background-color: transparent;
+    color: #F0EADA;
+    border: 1px solid rgba(240, 234, 218, 50);
+    border-radius: 12px;
+    padding: 5px 10px;
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+#new_chat_btn:hover {
+    background-color: rgba(240, 234, 218, 20);
+}
+
+#send_btn {
+    padding: 10px 20px; /* Возвращаем отступы для кнопки Send */
 }

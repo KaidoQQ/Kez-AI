@@ -2,9 +2,10 @@ import os
 import glob
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
-    QPushButton, QFrame, QLabel, QLineEdit, QScrollArea, QSizePolicy, QScrollBar
+    QPushButton, QFrame, QLabel, QLineEdit, QScrollArea, QSizePolicy, QScrollBar,
+    QGraphicsOpacityEffect
 )
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QUrl, QTimer
+from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QUrl, QTimer, QSize
 from PyQt6.QtMultimedia import QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtGui import QIcon
@@ -16,8 +17,10 @@ class KezMainWindow(QMainWindow):
         self.resize(1100, 750)
         
         # Load animation paths dynamically
-        self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        anim_dir = os.path.join(self.base_dir, "anim")
+        self.frontend_dir = os.path.dirname(os.path.abspath(__file__))
+        self.assets_dir = os.path.join(self.frontend_dir, "assets")
+        anim_dir = os.path.join(self.assets_dir, "anim")
+        self.icons_dir = os.path.join(self.assets_dir, "icons")
         
         idle_videos = glob.glob(os.path.join(anim_dir, "*1*.mp4"))
         search_videos = glob.glob(os.path.join(anim_dir, "*2*.mp4"))
@@ -53,6 +56,12 @@ class KezMainWindow(QMainWindow):
         self.sidebar_title = QLabel("Chat History")
         self.sidebar_layout.addWidget(self.sidebar_title)
         
+        # New Chat Button
+        self.new_chat_btn = QPushButton("+ New Chat")
+        self.new_chat_btn.setObjectName("new_chat_btn")
+        self.new_chat_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.sidebar_layout.addWidget(self.new_chat_btn)
+        
         # TODO: A QListWidget will go here for history items
         self.sidebar_layout.addStretch()
         
@@ -67,12 +76,24 @@ class KezMainWindow(QMainWindow):
         
         # Top bar (Hamburger menu)
         self.top_bar = QHBoxLayout()
-        self.menu_btn = QPushButton("☰")
+        self.menu_btn = QPushButton("")
+        self.menu_btn.setIcon(QIcon(os.path.join(self.icons_dir, "chats.png")))
+        self.menu_btn.setIconSize(QSize(38, 38))
         self.menu_btn.setObjectName("menu_btn")
         self.menu_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.menu_btn.setFixedSize(40, 40)
         self.top_bar.addWidget(self.menu_btn)
+        
         self.top_bar.addStretch()
+        
+        self.settings_btn = QPushButton("")
+        self.settings_btn.setIcon(QIcon(os.path.join(self.icons_dir, "settings.png")))
+        self.settings_btn.setIconSize(QSize(38, 38))
+        self.settings_btn.setObjectName("settings_btn")
+        self.settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.settings_btn.setFixedSize(40, 40)
+        self.top_bar.addWidget(self.settings_btn)
+        
         self.right_layout.addLayout(self.top_bar)
         
         # Companion Video Area
@@ -98,17 +119,33 @@ class KezMainWindow(QMainWindow):
         self.input_layout = QHBoxLayout()
         self.input_layout.setSpacing(10)
         
+        self.attach_btn = QPushButton("")
+        self.attach_btn.setIcon(QIcon(os.path.join(self.icons_dir, "files.png")))
+        self.attach_btn.setIconSize(QSize(38, 38))
+        self.attach_btn.setObjectName("action_btn")
+        self.attach_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.attach_btn.setFixedSize(45, 45)
+        
         self.input_field = QLineEdit()
         self.input_field.setObjectName("input_field")
         self.input_field.setPlaceholderText("Message Kez...")
         self.input_field.setFixedHeight(45)
+        
+        self.voice_btn = QPushButton("")
+        self.voice_btn.setIcon(QIcon(os.path.join(self.icons_dir, "micro.png")))
+        self.voice_btn.setIconSize(QSize(38, 38))
+        self.voice_btn.setObjectName("action_btn")
+        self.voice_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.voice_btn.setFixedSize(45, 45)
         
         self.send_btn = QPushButton("Send")
         self.send_btn.setObjectName("send_btn")
         self.send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.send_btn.setFixedHeight(45)
         
+        self.input_layout.addWidget(self.attach_btn)
         self.input_layout.addWidget(self.input_field)
+        self.input_layout.addWidget(self.voice_btn)
         self.input_layout.addWidget(self.send_btn)
         
         self.right_layout.addLayout(self.input_layout)
@@ -203,6 +240,15 @@ class KezMainWindow(QMainWindow):
         # Force stylesheet update for dynamic properties
         lbl.setStyleSheet("/* update */")
         
+        # Fade-in effect
+        opacity_effect = QGraphicsOpacityEffect(lbl)
+        lbl.setGraphicsEffect(opacity_effect)
+        anim = QPropertyAnimation(opacity_effect, b"opacity", lbl)
+        anim.setDuration(400)
+        anim.setStartValue(0.0)
+        anim.setEndValue(1.0)
+        anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        
         layout = QHBoxLayout()
         if msg_type == "user":
             layout.addStretch()  # Align Right
@@ -213,6 +259,8 @@ class KezMainWindow(QMainWindow):
             
         # Insert just before the final stretch in the VBox
         self.chat_layout.insertLayout(self.chat_layout.count() - 1, layout)
+        
+        anim.start()
         
         # Auto-scroll to bottom
         QTimer.singleShot(50, self.scroll_to_bottom)
