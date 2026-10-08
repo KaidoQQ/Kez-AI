@@ -17,21 +17,6 @@ if not TOKEN:
     )
 
 
-def _read_mini_app_url() -> str:
-    """Return a public HTTPS URL suitable for a Telegram Mini App button."""
-    value = os.getenv("MINI_APP_URL", "").strip()
-    if not value:
-        logger.info("MINI_APP_URL is not set; the Mini App button is disabled.")
-        return ""
-
-    parsed = urlparse(value)
-    if parsed.scheme != "https" or not parsed.netloc:
-        logger.warning("MINI_APP_URL must be an absolute HTTPS URL; the Mini App button is disabled.")
-        return ""
-
-    return value.rstrip("/")
-
-
 db_dir = BASE_DIR.parent / "tech"
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 if not DATABASE_URL:

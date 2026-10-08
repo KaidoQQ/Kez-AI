@@ -1,5 +1,7 @@
 import os
 import glob
+import asyncio
+from qasync import asyncSlot
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
     QPushButton, QFrame, QLabel, QLineEdit, QScrollArea, QSizePolicy, QScrollBar,
@@ -11,7 +13,7 @@ from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtGui import QIcon
 
 class KezMainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Kez AI Companion")
         self.resize(1100, 750)
@@ -42,7 +44,7 @@ class KezMainWindow(QMainWindow):
         # Connect buttons
         self.menu_btn.clicked.connect(self.toggle_sidebar)
 
-    def _setup_sidebar(self):
+    def _setup_sidebar(self) -> None:
         """Creates the left sidebar for chat history"""
         self.sidebar = QFrame()
         self.sidebar.setObjectName("sidebar")
@@ -67,7 +69,7 @@ class KezMainWindow(QMainWindow):
         
         self.main_layout.addWidget(self.sidebar)
 
-    def _setup_main_area(self):
+    def _setup_main_area(self) -> None:
         """Creates the central work area (Video + Chat)"""
         self.right_widget = QWidget()
         self.right_layout = QVBoxLayout(self.right_widget)
@@ -155,7 +157,7 @@ class KezMainWindow(QMainWindow):
         self.send_btn.clicked.connect(self.handle_send)
         self.input_field.returnPressed.connect(self.handle_send)
 
-    def _setup_video_player(self):
+    def _setup_video_player(self) -> None:
         """Configures the QMediaPlayer for animations"""
         self.player = QMediaPlayer()
         self.player.setVideoOutput(self.video_widget)
@@ -167,12 +169,12 @@ class KezMainWindow(QMainWindow):
         # Loop the video
         self.player.playbackStateChanged.connect(self.on_playback_state_changed)
 
-    def on_playback_state_changed(self, state):
+    def on_playback_state_changed(self, state: QMediaPlayer.PlaybackState) -> None:
         # Restart if stopped
         if state == QMediaPlayer.PlaybackState.StoppedState:
             self.player.play()
 
-    def toggle_sidebar(self):
+    def toggle_sidebar(self) -> None:
         """Animates the left sidebar (Show/Hide)"""
         width = self.sidebar.width()
         target_width = 0 if width > 0 else 250
@@ -192,7 +194,8 @@ class KezMainWindow(QMainWindow):
         self.animation.start()
         self.animation_max.start()
 
-    def handle_send(self):
+    @asyncSlot()
+    async def handle_send(self) -> None:
         """Processes the sent message"""
         text = self.input_field.text().strip()
         if not text:
@@ -212,9 +215,10 @@ class KezMainWindow(QMainWindow):
         
         #TODO Добавить тут функцию для поиска через DuckDuckGo
         # Simulate waiting for the backend response
-        QTimer.singleShot(3000, lambda: self.simulate_backend_response(was_searching=is_searching))
+        await asyncio.sleep(3)
+        await self.simulate_backend_response(was_searching=is_searching)
 
-    def simulate_backend_response(self, was_searching=False):
+    async def simulate_backend_response(self, was_searching: bool = False) -> None:
         """Temporary mock method for AI response"""
         if was_searching:
             self.add_message("I searched the web and found this for you! 🔎", "ai")
@@ -228,7 +232,7 @@ class KezMainWindow(QMainWindow):
                 self.player.setSource(QUrl.fromLocalFile(self.idle_video_path))
                 self.player.play()
 
-    def add_message(self, text, msg_type):
+    def add_message(self, text: str, msg_type: str) -> None:
         """Appends a chat bubble to the UI"""
         lbl = QLabel(text)
         lbl.setWordWrap(True)
@@ -265,6 +269,6 @@ class KezMainWindow(QMainWindow):
         # Auto-scroll to bottom
         QTimer.singleShot(50, self.scroll_to_bottom)
 
-    def scroll_to_bottom(self):
+    def scroll_to_bottom(self) -> None:
         scrollbar = self.chat_scroll.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
