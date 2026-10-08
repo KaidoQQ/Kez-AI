@@ -98,3 +98,34 @@ class DataBase(BaseDatabase):
             logger.error(f"Failed to create chat with first message: {e}")
             # Транзакция автоматически откатывается при ошибке
             return None
+
+    async def get_all_chats(self) -> list[dict]:
+        """Возвращает список всех чатов, отсортированных по дате обновления."""
+        try:
+            records = await self.fetchall("SELECT id, title, updated_at FROM history_chats ORDER BY updated_at DESC")
+            return [dict(record) for record in records]
+        except Exception as e:
+            logger.error(f"Failed to fetch chats: {e}")
+            return []
+
+    async def get_chat_messages(self, chat_id: int) -> list[dict]:
+        """Возвращает все сообщения конкретного чата."""
+        try:
+            records = await self.fetchall("SELECT id, sender_type, text_content, created_at FROM messages WHERE chat_id = $1 ORDER BY created_at ASC", chat_id)
+            return [dict(record) for record in records]
+        except Exception as e:
+            logger.error(f"Failed to fetch messages for chat {chat_id}: {e}")
+            return []
+
+    async def add_message_to_chat(self, chat_id: int, sender: str, text_content: str) -> bool:
+        """Добавляет новое сообщение в существующий чат."""
+        try:
+            await self.execute(
+                "INSERT INTO messages (chat_id, sender_type, text_content) VALUES ($1, $2, $3)",
+                chat_id, sender, text_content
+            )
+            logger.info(f"Message added to chat {chat_id} by {sender}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to add message to chat {chat_id}: {e}")
+            return False
