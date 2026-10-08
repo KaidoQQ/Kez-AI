@@ -1,7 +1,7 @@
 from google import genai
 from google.genai.errors import APIError
 from core.logger import logger
-from info.const import MODELS_FALLBACK, PROMPTS
+from core.const import MODELS_FALLBACK, PROMPTS
 from Kez.prepare import _load_all_prompts, _get_client
 
 class KezAgent:

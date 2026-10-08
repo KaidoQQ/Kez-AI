@@ -3,7 +3,7 @@ from pathlib import Path
 from google import genai
 from google.genai.errors import APIError
 from core.logger import logger
-from info.const import AI
+from core.const import AI
 
 
 async def _get_client() -> genai.Client:
