@@ -1,5 +1,4 @@
 from datetime import datetime
-import asyncpg
 from tech.basicDB import BaseDatabase
 from core.logger import logger
 
