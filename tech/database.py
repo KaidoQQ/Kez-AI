@@ -117,13 +117,57 @@ class DataBase(BaseDatabase):
             logger.error(f"Failed to fetch messages for chat {chat_id}: {e}")
             return []
 
-    async def add_message_to_chat(self, chat_id: int, sender: str, text_content: str) -> bool:
-        """Добавляет новое сообщение в существующий чат."""
+    async def create_chat(self, title: str = "Новый чат") -> int | None:
+        """Создает новый чат и возвращает его id."""
+        try:
+            chat_id = await self.fetchval(
+                "INSERT INTO history_chats (title) VALUES ($1) RETURNING id",
+                title
+            )
+            logger.info(f"Создан новый чат '{title}' с id={chat_id}")
+            return chat_id
+        except Exception as e:
+            logger.error(f"Не удалось создать чат '{title}': {e}")
+            return None
+
+    async def get_or_create_default_chat(self) -> int:
+        """Возвращает id последнего активного чата или создает первый по умолчанию."""
+        try:
+            record = await self.fetchone("SELECT id FROM history_chats ORDER BY updated_at DESC LIMIT 1")
+            if record:
+                return int(record["id"])
+
+            new_id = await self.create_chat("Основной чат")
+            return int(new_id) if new_id else 1
+        except Exception as e:
+            logger.error(f"Ошибка при получении/создании чата по умолчанию: {e}")
+            return 1
+
+    async def update_chat_title(self, chat_id: int, new_title: str) -> bool:
+        """Обновляет заголовок чата."""
         try:
             await self.execute(
-                "INSERT INTO messages (chat_id, sender_type, text_content) VALUES ($1, $2, $3)",
-                chat_id, sender, text_content
+                "UPDATE history_chats SET title = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+                new_title, chat_id
             )
+            logger.info(f"Заголовок чата {chat_id} обновлен на '{new_title}'")
+            return True
+        except Exception as e:
+            logger.error(f"Не удалось обновить заголовок чата {chat_id}: {e}")
+            return False
+
+    async def add_message_to_chat(self, chat_id: int, sender: str, text_content: str) -> bool:
+        """Добавляет новое сообщение в существующий чат и обновляет updated_at чата."""
+        try:
+            async with self.transaction() as connection:
+                await connection.execute(
+                    "INSERT INTO messages (chat_id, sender_type, text_content) VALUES ($1, $2, $3)",
+                    chat_id, sender, text_content
+                )
+                await connection.execute(
+                    "UPDATE history_chats SET updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+                    chat_id
+                )
             logger.info(f"Message added to chat {chat_id} by {sender}")
             return True
         except Exception as e:

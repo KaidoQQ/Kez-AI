@@ -1,14 +1,14 @@
+import os
 from pathlib import Path
 
 from google import genai
 from google.genai.errors import APIError
 from core.logger import logger
-from core.const import AI
 
 
-async def _get_client() -> genai.Client:
+def _get_client() -> genai.Client:
     """Creates and returns a Gemini API client."""
-    api_key = AI
+    api_key: str | None = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY is not configured. Add it to the .env file.")
     return genai.Client(api_key=api_key)

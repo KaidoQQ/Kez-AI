@@ -87,6 +87,16 @@ QWidget#chat_content {
     margin: 5px;
     font-size: 14px;
 }
+.QLabel[msg_type="typing"] {
+    background-color: rgba(30, 41, 59, 140);
+    color: #A0AEC0;
+    border: 1px dashed rgba(240, 234, 218, 20);
+    border-radius: 16px;
+    padding: 8px 16px;
+    margin: 5px;
+    font-size: 13px;
+    font-style: italic;
+}
 
 /* Стили для новых кнопок */
 #settings_btn {
@@ -116,4 +126,35 @@ QWidget#chat_content {
 
 #send_btn {
     padding: 10px 20px; /* Возвращаем отступы для кнопки Send */
+}
+
+/* Список истории чатов в сайдбаре */
+QListWidget#chat_list_widget {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    color: #F0EADA;
+    font-size: 13px;
+}
+
+QListWidget#chat_list_widget::item {
+    background-color: rgba(23, 32, 51, 100);
+    color: #E2DFD2;
+    border: 1px solid rgba(240, 234, 218, 20);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+}
+
+QListWidget#chat_list_widget::item:hover {
+    background-color: rgba(39, 58, 113, 160);
+    border: 1px solid rgba(240, 234, 218, 60);
+    color: #FFFFFF;
+}
+
+QListWidget#chat_list_widget::item:selected {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(39, 58, 113, 230), stop:1 rgba(23, 35, 70, 230));
+    border: 1px solid rgba(240, 234, 218, 120);
+    color: #F0EADA;
+    font-weight: bold;
 }

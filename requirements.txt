@@ -3,3 +3,4 @@ python-dotenv==1.0.1
 psycopg2-binary==2.9.9
 asyncpg==0.29.0
 qasync==0.27.1
+google-genai>=1.0.0

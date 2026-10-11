@@ -10,12 +10,6 @@ from core.logger import logger
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR.parent / ".env")
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-if not TOKEN:
-    raise RuntimeError(
-        "TELEGRAM_BOT_TOKEN is not configured. Add it to the .env file."
-    )
-
 
 db_dir = BASE_DIR.parent / "tech"
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
