@@ -62,7 +62,7 @@ class JsonFormatter(logging.Formatter):
 
 #─── Create a root application logger ───────────────────────
 def _build_logger() -> logging.Logger:
-    log = logging.getLogger("habi_bot")
+    log = logging.getLogger("Kez")
     log.setLevel(logging.DEBUG)
 
     #1. File handler (plain-text) with rotation
