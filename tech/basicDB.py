@@ -47,6 +47,12 @@ class BaseDatabase:
         async with self._get_pool().acquire() as connection:
             return await connection.fetch(query, *args)
 
+    async def fetchval(self, query: str, *args: object) -> object:
+        """Возвращает значение первой колонки первой строки результата запроса."""
+        async with self._get_pool().acquire() as connection:
+            return await connection.fetchval(query, *args)
+
+
     @asynccontextmanager
     async def transaction(self) -> AsyncIterator[asyncpg.Connection]:
         """Предоставляет транзакцию для операций, которые должны быть атомарными."""

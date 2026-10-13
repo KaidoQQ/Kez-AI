@@ -1,0 +1,12 @@
+# TASK: EXTRACT AGE OR BIRTH YEAR FROM USER MESSAGE
+
+## OBJECTIVE
+Определи возраст или год рождения из сообщения пользователя.
+
+## USER MESSAGE
+"{USER_MESSAGE}"
+
+## OUTPUT FORMAT
+Верни ТОЛЬКО JSON без markdown:
+{{"is_valid": true/false, "birth_value": <целое число возраста или года>}}
+Если возраст/год не указан или сообщение не по теме, верни is_valid: false.

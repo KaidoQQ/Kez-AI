@@ -173,3 +173,69 @@ class DataBase(BaseDatabase):
         except Exception as e:
             logger.error(f"Failed to add message to chat {chat_id}: {e}")
             return False
+
+    async def delete_chat(self, chat_id: int) -> bool:
+        """Удаляет чат и все связанные сообщения (каскадно) по chat_id."""
+        try:
+            async with self.transaction() as connection:
+                await connection.execute("DELETE FROM history_chats WHERE id = $1", chat_id)
+            logger.info(f"Чат ID={chat_id} успешно удален из базы данных.")
+            return True
+        except Exception as e:
+            logger.error(f"Не удалось удалить чат ID={chat_id}: {e}")
+            return False
+
+    async def get_user_info(self) -> dict[str, str | int] | None:
+        """Возвращает актуальную информацию о пользователе из user_info."""
+        try:
+            record = await self.fetchone(
+                "SELECT id, full_name, birth, interests, updated_at FROM user_info ORDER BY id ASC LIMIT 1"
+            )
+            if record:
+                return dict(record)
+            return None
+        except Exception as e:
+            logger.error(f"Ошибка при получении user_info из БД: {e}")
+            return None
+
+    async def is_onboarding_completed(self) -> bool:
+        """Проверяет, заполнена ли информация о пользователе (завершен ли онбординг)."""
+        try:
+            info = await self.get_user_info()
+            if not info:
+                return False
+            name: str = str(info.get("full_name", "")).strip()
+            interests: str = str(info.get("interests", "")).strip()
+            return bool(name and interests)
+        except Exception as e:
+            logger.error(f"Ошибка проверки завершения онбординга: {e}")
+            return False
+
+    async def save_or_update_user_info(self, full_name: str, birth: int, interests: str) -> bool:
+        """Создает или обновляет запись информации о пользователе в user_info."""
+        try:
+            async with self.transaction() as connection:
+                existing_id = await connection.fetchval("SELECT id FROM user_info ORDER BY id ASC LIMIT 1")
+                if existing_id is not None:
+                    await connection.execute(
+                        """
+                        UPDATE user_info
+                        SET full_name = $1, birth = $2, interests = $3, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = $4
+                        """,
+                        full_name, birth, interests, existing_id
+                    )
+                    logger.info(f"Обновлена информация о пользователе id={existing_id}: {full_name}")
+                else:
+                    await connection.execute(
+                        """
+                        INSERT INTO user_info (full_name, birth, interests)
+                        VALUES ($1, $2, $3)
+                        """,
+                        full_name, birth, interests
+                    )
+                    logger.info(f"Создана новая запись информации о пользователе: {full_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка при сохранении user_info в БД: {e}")
+            return False

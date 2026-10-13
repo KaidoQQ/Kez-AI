@@ -73,7 +73,7 @@
       <ul>
         <li><b>Animated Video Companion:</b> Seamless video playback for idle states (<code>anim 1.mp4</code>) and active search states (<code>anim search 2.mp4</code>).</li>
         <li><b>Sleek QSS Dark Theme:</b> Polished glass-styled UI, rounded message bubbles, responsive input field.</li>
-        <li><b>Collapsible Sidebar:</b> Fast switching between multiple chat sessions with dynamic creation and renaming.</li>
+        <li><b>Collapsible Sidebar:</b> Fast switching between multiple chat sessions with right-click context menu (Rename, Delete) and Gemini-style lazy session creation.</li>
       </ul>
     </td>
     <td width="50%">

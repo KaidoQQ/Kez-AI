@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPus
 from Kez.kez import KezAgent
 from core.loader import db
 from core.logger import logger
+from app.backend.piplines.start.onboarding import OnboardingManager
 from app.frontend.components.sidebar import SidebarWidget
 from app.frontend.components.video_companion import VideoCompanionWidget
 from app.frontend.components.chat_area import ChatAreaWidget
@@ -39,12 +40,10 @@ class KezMainWindow(QMainWindow):
 
         # Инициализация агента и сессии
         self.agent: KezAgent = KezAgent()
-        self.current_chat_id: int = 1
+        self.onboarding: OnboardingManager = OnboardingManager()
+        self.current_chat_id: int | None = None
 
         self._setup_ui()
-
-        # Загрузка сессии чата после старта event loop
-        QTimer.singleShot(100, lambda: asyncio.create_task(self.load_initial_chat_session()))
 
     def _setup_ui(self) -> None:
         self.central_widget = QWidget()
@@ -55,8 +54,10 @@ class KezMainWindow(QMainWindow):
 
         # 1. Левый сайдбар
         self.sidebar = SidebarWidget()
-        self.sidebar.new_chat_requested.connect(lambda: asyncio.create_task(self.handle_new_chat()))
-        self.sidebar.chat_selected.connect(lambda cid: asyncio.create_task(self.handle_chat_selected(cid)))
+        self.sidebar.new_chat_requested.connect(self.handle_new_chat)
+        self.sidebar.chat_selected.connect(self.handle_chat_selected)
+        self.sidebar.chat_rename_requested.connect(self.handle_chat_rename)
+        self.sidebar.chat_delete_requested.connect(self.handle_chat_delete)
         self.main_layout.addWidget(self.sidebar)
 
         # 2. Правая рабочая область (Видео + Чат + Ввод)
@@ -88,30 +89,68 @@ class KezMainWindow(QMainWindow):
 
         self.right_layout.addLayout(self.top_bar)
 
-        # Видео-аватар
+        # Видео-аватар (компактная высота, чтобы чат занимал максимум пространства)
         self.video_companion = VideoCompanionWidget(self.idle_video_path, self.search_video_path)
-        self.right_layout.addWidget(self.video_companion, stretch=1)
+        self.video_companion.setMaximumHeight(260)
+        self.right_layout.addWidget(self.video_companion, stretch=0)
 
-        # Область сообщений чата
+        # Область сообщений чата (главный эластичный элемент)
         self.chat_area = ChatAreaWidget()
         self.right_layout.addWidget(self.chat_area, stretch=1)
 
         # Панель ввода
         self.input_bar = InputBarWidget(self.icons_dir)
-        self.input_bar.message_submitted.connect(lambda text: asyncio.create_task(self.handle_send(text)))
+        self.input_bar.message_submitted.connect(self.handle_send)
+        self.input_bar.meet_kez_clicked.connect(self.start_onboarding_flow)
         self.right_layout.addWidget(self.input_bar)
 
         self.main_layout.addWidget(self.right_widget)
 
     @asyncSlot()
     async def load_initial_chat_session(self) -> None:
-        """Загружает последний активный чат или создает дефолтный."""
+        """Загружает последний активный чат или переходит в режим нового."""
         try:
-            self.current_chat_id = await db.get_or_create_default_chat()
+            chats: list[dict] = await db.get_all_chats()
+            if chats:
+                self.current_chat_id = int(chats[0]["id"])
+                await self.load_chat_messages(self.current_chat_id)
+            else:
+                self.current_chat_id = None
+                self.chat_area.clear_messages()
+
             await self.load_chats_list()
-            await self.load_chat_messages(self.current_chat_id)
+
+            # Проверяем условия для показа кнопки "Get to know Kez":
+            # 1. Онбординг еще не был завершен
+            # 2. Нет сообщений в текущем чате или чатов нет вовсе
+            is_completed: bool = await db.is_onboarding_completed()
+            if not is_completed:
+                messages_count: int = 0
+                if self.current_chat_id is not None:
+                    msgs = await db.get_chat_messages(self.current_chat_id)
+                    messages_count = len(msgs)
+                if len(chats) <= 1 and messages_count == 0:
+                    self.input_bar.show_meet_button()
+                    logger.info("Кнопка 'Get to know Kez' показана при первом старте.")
         except Exception as e:
             logger.error(f"Ошибка при инициализации сессии чата: {e}")
+
+    @asyncSlot()
+    async def start_onboarding_flow(self) -> None:
+        """Запускает процесс интерактивного знакомства."""
+        try:
+            if self.current_chat_id is None:
+                self.current_chat_id = await db.create_chat("Знакомство с Kez")
+                await self.load_chats_list()
+
+            first_question: str = self.onboarding.start_onboarding()
+            self.input_bar.set_placeholder(self.onboarding.get_current_placeholder())
+            self.chat_area.add_message(first_question, "ai", animate=True)
+            if self.current_chat_id is not None:
+                await db.add_message_to_chat(self.current_chat_id, "ai", first_question)
+            self.input_bar.set_focus()
+        except Exception as e:
+            logger.error(f"Ошибка при запуске знакомства с Kez: {e}")
 
     @asyncSlot()
     async def load_chats_list(self) -> None:
@@ -124,22 +163,48 @@ class KezMainWindow(QMainWindow):
 
     @asyncSlot()
     async def handle_new_chat(self) -> None:
-        """Создает новый чат и переключает окно."""
+        """Переключает в режим нового чата (как в Gemini: чат создастся в БД при отправке первого сообщения)."""
+        self.current_chat_id = None
+        self.chat_area.clear_messages()
+        await self.load_chats_list()
+        self.input_bar.set_placeholder("Message Kez...")
+        self.input_bar.set_focus()
+        logger.info("Открыт пустой экран для нового чата.")
+
+    @asyncSlot(int, str)
+    async def handle_chat_rename(self, chat_id: int, new_title: str) -> None:
+        """Переименовывает чат в базе данных и обновляет список."""
         try:
-            new_chat_id = await db.create_chat("Новый чат")
-            if new_chat_id is None:
-                logger.error("Не удалось создать новый чат в базе данных")
+            success = await db.update_chat_title(chat_id, new_title)
+            if success:
+                await self.load_chats_list()
+                logger.info(f"Чат ID={chat_id} успешно переименован в '{new_title}'")
+        except Exception as e:
+            logger.error(f"Ошибка при переименовании чата ID={chat_id}: {e}")
+
+    @asyncSlot(int)
+    async def handle_chat_delete(self, chat_id: int) -> None:
+        """Удаляет чат из базы данных и переключает на следующий или пустой экран."""
+        try:
+            success = await db.delete_chat(chat_id)
+            if not success:
                 return
 
-            self.current_chat_id = new_chat_id
-            self.chat_area.clear_messages()
-            await self.load_chats_list()
-            self.input_bar.set_focus()
-            logger.info(f"Переключено на новый чат ID={self.current_chat_id}")
-        except Exception as e:
-            logger.error(f"Ошибка при создании нового чата: {e}")
+            if self.current_chat_id == chat_id:
+                # Переключаемся на оставшийся активный чат или в режим нового
+                remaining_chats = await db.get_all_chats()
+                if remaining_chats:
+                    self.current_chat_id = int(remaining_chats[0]["id"])
+                    await self.load_chat_messages(self.current_chat_id)
+                else:
+                    self.current_chat_id = None
+                    self.chat_area.clear_messages()
 
-    @asyncSlot()
+            await self.load_chats_list()
+        except Exception as e:
+            logger.error(f"Ошибка при удалении чата ID={chat_id}: {e}")
+
+    @asyncSlot(int)
     async def handle_chat_selected(self, chat_id: int) -> None:
         """Переключает текущий чат при выборе из сайдбара."""
         try:
@@ -149,6 +214,7 @@ class KezMainWindow(QMainWindow):
             self.current_chat_id = chat_id
             logger.info(f"Выбран чат ID={self.current_chat_id}")
             await self.load_chat_messages(self.current_chat_id)
+            await self.load_chats_list()
         except Exception as e:
             logger.error(f"Ошибка при переключении чата: {e}")
 
@@ -164,9 +230,25 @@ class KezMainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"Не удалось загрузить сообщения для чата {chat_id}: {e}")
 
-    @asyncSlot()
+    @asyncSlot(str)
     async def handle_send(self, text: str) -> None:
         """Обрабатывает отправку сообщения пользователем."""
+        # Если чат ещё не создан в БД (режим Gemini) — создаём его сейчас
+        created_new_chat_now: bool = False
+        if self.current_chat_id is None:
+            short_title: str = " ".join(text.split()[:5])
+            if len(short_title) > 30:
+                short_title = short_title[:27] + "..."
+            title: str = short_title or "Новый чат"
+            try:
+                new_id = await db.create_chat(title)
+                self.current_chat_id = int(new_id) if new_id else 1
+                created_new_chat_now = True
+                await self.load_chats_list()
+            except Exception as e:
+                logger.error(f"Не удалось создать чат при первом сообщении: {e}")
+                self.current_chat_id = 1
+
         self.chat_area.add_message(text, "user", animate=True)
 
         # Сохранение в БД
@@ -175,18 +257,41 @@ class KezMainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"Не удалось сохранить сообщение пользователя в БД: {e}")
 
-        # Авто-переименование нового чата по первой фразе
-        try:
-            current_title = self.sidebar.get_current_chat_title()
-            if current_title in ("Новый чат", "Основной чат"):
-                short_title: str = " ".join(text.split()[:5])
-                if len(short_title) > 30:
-                    short_title = short_title[:27] + "..."
-                if short_title:
-                    await db.update_chat_title(self.current_chat_id, short_title)
-                    await self.load_chats_list()
-        except Exception as e:
-            logger.error(f"Не удалось обновить заголовок чата: {e}")
+        # Если активен онбординг (знакомство с Kez) — обрабатываем строго в пайплайне онбординга
+        if self.onboarding.is_active:
+            self.chat_area.show_typing_indicator()
+            try:
+                reply, is_done = await self.onboarding.process_user_input(text)
+                if not is_done:
+                    self.input_bar.set_placeholder(self.onboarding.get_current_placeholder())
+                else:
+                    self.input_bar.set_placeholder("Message Kez...")
+            except Exception as e:
+                logger.error(f"Ошибка при обработке ответа онбординга: {e}")
+                reply = "Чирик! 🐦 Мои перышки запутались... Давай попробуем еще раз!"
+            finally:
+                self.chat_area.hide_typing_indicator()
+
+            self.chat_area.add_message(reply, "ai", animate=True)
+            try:
+                await db.add_message_to_chat(self.current_chat_id, "ai", reply)
+            except Exception as e:
+                logger.error(f"Не удалось сохранить ответ онбординга в БД: {e}")
+            return
+
+        # Если чат уже существовал под дефолтным названием — обновим заголовок
+        if not created_new_chat_now:
+            try:
+                current_title = self.sidebar.get_current_chat_title()
+                if current_title in ("Новый чат", "Основной чат"):
+                    short_title = " ".join(text.split()[:5])
+                    if len(short_title) > 30:
+                        short_title = short_title[:27] + "..."
+                    if short_title:
+                        await db.update_chat_title(self.current_chat_id, short_title)
+                        await self.load_chats_list()
+            except Exception as e:
+                logger.error(f"Не удалось обновить заголовок чата: {e}")
 
         # Показ индикатора набора текста
         self.chat_area.show_typing_indicator()
@@ -214,3 +319,5 @@ class KezMainWindow(QMainWindow):
 
         # Возврат к idle анимации
         self.video_companion.play_idle()
+
+

@@ -9,3 +9,5 @@ __pycache__/
 info
 .vscode/
 logs/
+app/backend/plan_files.txt
+app/backend/plan_piplines.txt

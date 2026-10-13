@@ -19,7 +19,10 @@ from urllib.parse import urlparse
 
 import httpx
 from cachetools import TTLCache
-from duckduckgo_search import DDGS
+try:
+    from ddgs import DDGS
+except ImportError:
+    from duckduckgo_search import DDGS
 import trafilatura
 
 from core.logger import logger
@@ -406,8 +409,18 @@ async def web_search(query: str) -> str:
 
         # Сборка промпта
         template = get_web_search_prompt_template()
+        try:
+            from app.backend.piplines.start.memory import format_user_profile
+            from core.loader import db
+            user_info = await db.get_user_info()
+            profile_text = format_user_profile(user_info)
+        except Exception as e:
+            logger.error(f"Не удалось получить user_info для веб-поиска: {e}")
+            profile_text = "Информация о пользователе пока неизвестна."
+
         final_prompt = (
-            template.replace("{SEARCH_QUERY}", sanitized_query)
+            template.replace("{USER_PROFILE_INFO}", profile_text)
+            .replace("{SEARCH_QUERY}", sanitized_query)
             .replace("{WEB_CONTEXT}", web_context)
             .replace("{SOURCE_URLS}", source_urls)
         )

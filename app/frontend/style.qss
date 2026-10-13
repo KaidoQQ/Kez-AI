@@ -26,6 +26,28 @@ QWidget#chat_content {
     background-color: transparent;
 }
 
+/* Стилизация скроллбара */
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+    margin: 0px;
+}
+QScrollBar::handle:vertical {
+    background: rgba(240, 234, 218, 40);
+    min-height: 25px;
+    border-radius: 4px;
+}
+QScrollBar::handle:vertical:hover {
+    background: rgba(240, 234, 218, 100);
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+
 /* Поле ввода */
 #input_field {
     background-color: rgba(23, 32, 51, 180);
@@ -69,23 +91,27 @@ QWidget#chat_content {
 }
 
 /* Сообщения (Баблы) */
-.QLabel[msg_type="user"] {
+.QLabel[msg_type="user"], QTextBrowser[msg_type="user"] {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(29, 43, 83, 230), stop:1 rgba(17, 26, 51, 230));
     color: #F0EADA; /* Кремовый текст */
     border: 1px solid rgba(240, 234, 218, 20);
     border-radius: 18px;
-    padding: 12px 18px;
+    padding: 10px 16px;
     margin: 5px;
     font-size: 14px;
+    selection-background-color: #3B82F6;
+    selection-color: #FFFFFF;
 }
-.QLabel[msg_type="ai"] {
+.QLabel[msg_type="ai"], QTextBrowser[msg_type="ai"] {
     background-color: rgba(30, 41, 59, 200); /* Приглушенный серо-синий */
     color: #E2DFD2; /* Чуть более тусклый кремовый */
     border: 1px solid rgba(240, 234, 218, 10);
     border-radius: 18px;
-    padding: 12px 18px;
+    padding: 10px 16px;
     margin: 5px;
     font-size: 14px;
+    selection-background-color: #3B82F6;
+    selection-color: #FFFFFF;
 }
 .QLabel[msg_type="typing"] {
     background-color: rgba(30, 41, 59, 140);
