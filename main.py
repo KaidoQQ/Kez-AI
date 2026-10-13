@@ -7,11 +7,12 @@ from app.frontend.main_window import KezMainWindow
 from core.loader import db
 from core.logger import logger
 
-async def startup() -> None:
+async def startup(window: KezMainWindow) -> None:
     try:
         await db.connect()
         await db.create_tables()
         logger.info("Database connected and tables verified.")
+        await window.load_initial_chat_session()
     except Exception as e:
         logger.error(f"Startup failed: {e}")
 
@@ -31,7 +32,7 @@ def main() -> None:
     window = KezMainWindow()
     window.show()
     
-    loop.create_task(startup())
+    loop.create_task(startup(window))
     
     with loop:
         loop.run_forever()

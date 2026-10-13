@@ -1,11 +1,10 @@
 from pathlib import Path
 from typing import Any
 
-from google import genai
 from core.loader import db
 from core.logger import logger
-from core.const import PROMPTS, MODELS_FALLBACK, PROMPTS_DIR
-from Kez.prepare import _get_client
+from core.const import PROMPTS, PROMPTS_DIR
+from app.backend.utils.llm_fallback import generate_response_with_fallback
 
 
 def format_chat_history(messages: list[dict[str, Any]]) -> str:
@@ -25,56 +24,53 @@ def format_chat_history(messages: list[dict[str, Any]]) -> str:
     return "\n".join(formatted_lines)
 
 
-def build_memory_prompt(template: str, history_text: str, user_text: str) -> str:
+def format_user_profile(user_info: dict[str, Any] | None) -> str:
     """
-    Подставляет историю сообщений и входящее сообщение пользователя в шаблон промпта.
+    Форматирует данные профиля пользователя для промпта LLM.
+    """
+    if not user_info:
+        return "Информация о пользователе пока неизвестна."
+
+    full_name: str = str(user_info.get("full_name", "")).strip() or "Не указано"
+    birth: Any = user_info.get("birth", "")
+    birth_str: str = str(birth).strip() if birth else "Не указано"
+    interests: str = str(user_info.get("interests", "")).strip() or "Не указано"
+
+    return f"Имя: {full_name}\nВозраст / дата рождения: {birth_str}\nИнтересы и увлечения: {interests}"
+
+
+def build_memory_prompt(template: str, history_text: str, user_text: str, profile_text: str = "") -> str:
+    """
+    Подставляет профиль пользователя, историю сообщений и входящее сообщение пользователя в шаблон промпта.
     """
     if not template:
         logger.error("Шаблон промпта памяти пуст.")
-        return f"Предыдущие сообщения:\n{history_text}\n\nНовое сообщение пользователя:\n{user_text}"
+        return f"Профиль:\n{profile_text}\n\nПредыдущие сообщения:\n{history_text}\n\nНовое сообщение пользователя:\n{user_text}"
 
     return (
-        template.replace("{PREVIOUS_10_MESSAGES}", history_text)
+        template.replace("{USER_PROFILE_INFO}", profile_text or "Информация о пользователе пока неизвестна.")
+        .replace("{PREVIOUS_10_MESSAGES}", history_text)
         .replace("{LATEST_USER_MESSAGE}", user_text)
     )
-
-
-async def generate_response_with_fallback(prompt: str) -> str:
-    """
-    Отправляет промпт в Gemini API с перебором fallback-моделей.
-    """
-    try:
-        client: genai.Client = _get_client()
-    except Exception as e:
-        logger.error(f"Не удалось инициализировать клиент Gemini: {e}")
-        return ""
-
-    for model_name in MODELS_FALLBACK:
-        try:
-            logger.info(f"Попытка генерации ответа через модель {model_name}...")
-            response = await client.aio.models.generate_content(
-                model=model_name,
-                contents=prompt,
-            )
-            if response and response.text:
-                logger.info(f"Успешный ответ от модели {model_name}.")
-                return response.text.strip()
-            logger.warning(f"Модель {model_name} вернула пустой ответ.")
-        except Exception as e:
-            logger.error(f"Ошибка при вызове модели {model_name}: {e}")
-
-    logger.error("Все доступные fallback-модели не смогли сгенерировать ответ.")
-    return ""
 
 
 async def get_memory(user_text: str, chat_id: int) -> str:
     """
     Основной пайплайн памяти:
-    1. Запрашивает последние сообщения чата из базы данных.
-    2. Извлекает последние 10 сообщений.
-    3. Форматирует историю и подставляет в шаблон промпта памяти.
-    4. Генерирует и возвращает ответ ассистента.
+    1. Запрашивает профиль пользователя из user_info.
+    2. Запрашивает последние сообщения чата из базы данных.
+    3. Извлекает последние 10 сообщений.
+    4. Форматирует историю и подставляет профиль в шаблон промпта памяти.
+    5. Генерирует и возвращает ответ ассистента.
     """
+    try:
+        user_info: dict[str, Any] | None = await db.get_user_info()
+    except Exception as e:
+        logger.error(f"Ошибка при получении профиля пользователя из базы данных: {e}")
+        user_info = None
+
+    profile_text: str = format_user_profile(user_info)
+
     try:
         messages: list[dict[str, Any]] = await db.get_chat_messages(chat_id)
     except Exception as e:
@@ -96,7 +92,7 @@ async def get_memory(user_text: str, chat_id: int) -> str:
         except Exception as e:
             logger.error(f"Не удалось прочитать файл промпта памяти: {e}")
 
-    final_prompt: str = build_memory_prompt(prompt_template, formatted_history, user_text)
+    final_prompt: str = build_memory_prompt(prompt_template, formatted_history, user_text, profile_text)
 
     return await generate_response_with_fallback(final_prompt)
 

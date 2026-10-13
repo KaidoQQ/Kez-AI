@@ -73,7 +73,7 @@
       <ul>
         <li><b>Animated Video Companion:</b> Seamless video playback for idle states (<code>anim 1.mp4</code>) and active search states (<code>anim search 2.mp4</code>).</li>
         <li><b>Sleek QSS Dark Theme:</b> Polished glass-styled UI, rounded message bubbles, responsive input field.</li>
-        <li><b>Collapsible Sidebar:</b> Fast switching between multiple chat sessions with dynamic creation and renaming.</li>
+        <li><b>Collapsible Sidebar:</b> Fast switching between multiple chat sessions with right-click context menu (Rename, Delete) and Gemini-style lazy session creation.</li>
       </ul>
     </td>
     <td width="50%">
@@ -131,6 +131,7 @@ flowchart TD
 | **GUI Framework** | 🖼️ **PyQt6** & **QtMultimedia** | High-DPI desktop interface, QSS stylesheets, video rendering |
 | **Async Engine** | ⚡ **qasync** & **asyncio** | Concurrent execution bridging Qt event loop and async tasks |
 | **AI / LLM** | ✨ **Google Gemini API** (`google-genai`) | Multimodal LLMs with fallback resilience pipeline |
+| **Web Search & Scraping** | 🔍 **DuckDuckGo, httpx, curl_cffi, Playwright, trafilatura** | Cascading web retrieval with Cloudflare bypass & text extraction |
 | **Database** | 🐘 **PostgreSQL 16** | Relational chat histories, user facts, indexes & triggers |
 | **DB Drivers** | 🔌 **asyncpg** & **psycopg2** | High-performance asynchronous connection pooling & transactions |
 | **Logging** | 📋 **Custom Logging Core** | Terminal output, plain-text logs (`.log`), and JSONL audit files |
@@ -151,9 +152,13 @@ kez-ai/
 │       └── lg.protect.txt      # Safety guardrails and persona constraints
 ├── 📁 app/
 │   ├── 📁 backend/             # Server & pipeline infrastructure
-│   │   └── 📁 piplines/start/  # Core request pipelines
-│   │       ├── routing.py      # Dual-tier intent router (Rules + Gemini)
-│   │       └── memory.py       # Context assembly & LLM fallback runner
+│   │   ├── 📁 piplines/start/  # Core request pipelines
+│   │   │   ├── routing.py      # Dual-tier intent router (Rules + Gemini)
+│   │   │   ├── memory.py       # Context assembly & conversation history
+│   │   │   └── web_search.py   # Cascading search pipeline (DuckDuckGo + httpx/curl/Playwright)
+│   │   └── 📁 utils/           # Shared helper modules
+│   │       ├── llm_fallback.py # Gemini fallback chain handler
+│   │       └── text_cleaner.py # Search query sanitization & keywords extraction
 │   └── 📁 frontend/            # PyQt6 Graphical Interface
 │       ├── 📁 components/      # Modular UI widgets
 │       │   ├── chat_area.py    # Scrollable chat bubbles & formatting
@@ -268,7 +273,7 @@ python main.py
 - [x] 🔀 Two-tier intent router (Instant regex + LLM classifier).
 - [x] 🧠 10-message conversational memory prompt maintaining the bird persona.
 - [x] 🛡️ Multi-model fallback resilience (`gemini-2.5-flash` down to `2.0-flash`).
-- [ ] 🔍 Web search pipeline integration (DuckDuckGo / Google Search API).
+- [x] 🔍 Web search pipeline integration (DuckDuckGo + 3-tier cascade httpx/curl_cffi/Playwright).
 - [ ] 🎨 Text-to-Image generation pipeline (Google Imagen / Fal.ai).
 - [ ] 📁 File analyzer and document exporter (PDF, Markdown, TXT).
 - [ ] 🎙️ Voice synthesis & speech recognition (TTS / STT integration).

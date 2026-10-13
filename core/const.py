@@ -90,3 +90,9 @@ QUICK_CONVERSATION_RESPONSES: list[tuple[re.Pattern, list[str]]] = [
         ]
     ),
 ]
+
+ONBOARDING_FINAL_GREETING: str = (
+    "Чирик-чирик! 🐦 Ура! Теперь мы официально знакомы, {full_name}! ✨\n\n"
+    "Я запомнил, что твой возраст/год: {birth_val}, а твои интересы — {interests}. "
+    "Моё гнёздышко настроено специально под тебя! О чём хочешь поговорить или что для тебя найти в интернете?"
+)

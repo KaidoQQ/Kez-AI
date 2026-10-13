@@ -27,7 +27,8 @@ class VideoCompanionWidget(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.video_widget = QVideoWidget()
-        self.video_widget.setMinimumHeight(350)
+        self.video_widget.setMinimumHeight(180)
+        self.video_widget.setMaximumHeight(260)
         self.layout.addWidget(self.video_widget)
 
         self.player = QMediaPlayer()
