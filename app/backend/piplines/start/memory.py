@@ -1,11 +1,10 @@
 from pathlib import Path
 from typing import Any
 
-from google import genai
 from core.loader import db
 from core.logger import logger
-from core.const import PROMPTS, MODELS_FALLBACK, PROMPTS_DIR
-from Kez.prepare import _get_client
+from core.const import PROMPTS, PROMPTS_DIR
+from app.backend.utils.llm_fallback import generate_response_with_fallback
 
 
 def format_chat_history(messages: list[dict[str, Any]]) -> str:
@@ -37,34 +36,6 @@ def build_memory_prompt(template: str, history_text: str, user_text: str) -> str
         template.replace("{PREVIOUS_10_MESSAGES}", history_text)
         .replace("{LATEST_USER_MESSAGE}", user_text)
     )
-
-
-async def generate_response_with_fallback(prompt: str) -> str:
-    """
-    Отправляет промпт в Gemini API с перебором fallback-моделей.
-    """
-    try:
-        client: genai.Client = _get_client()
-    except Exception as e:
-        logger.error(f"Не удалось инициализировать клиент Gemini: {e}")
-        return ""
-
-    for model_name in MODELS_FALLBACK:
-        try:
-            logger.info(f"Попытка генерации ответа через модель {model_name}...")
-            response = await client.aio.models.generate_content(
-                model=model_name,
-                contents=prompt,
-            )
-            if response and response.text:
-                logger.info(f"Успешный ответ от модели {model_name}.")
-                return response.text.strip()
-            logger.warning(f"Модель {model_name} вернула пустой ответ.")
-        except Exception as e:
-            logger.error(f"Ошибка при вызове модели {model_name}: {e}")
-
-    logger.error("Все доступные fallback-модели не смогли сгенерировать ответ.")
-    return ""
 
 
 async def get_memory(user_text: str, chat_id: int) -> str:

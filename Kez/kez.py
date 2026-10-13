@@ -6,6 +6,7 @@ from core.const import MODELS_FALLBACK, PROMPTS
 from Kez.prepare import _get_client
 from app.backend.piplines.start.routing import route_intent, IntentType, RoutingResult
 from app.backend.piplines.start.memory import get_memory
+from app.backend.piplines.start.web_search import web_search
 
 
 class KezAgent:
@@ -48,8 +49,7 @@ class KezAgent:
                 case IntentType.WEB_SEARCH:
                     search_query: str = str(decision.extracted_data.get("query", user_text))
                     logger.info(f"Интент WEB_SEARCH: поисковый запрос '{search_query}'")
-                    # Заглушка до реализации пайплайна DuckDuckGo поиска
-                    return f"🔎 [Web Search]: Я поняла, что нужно поискать в интернете: '{search_query}'. Скоро здесь будет подключен поиск DuckDuckGo!"
+                    return await web_search(search_query)
 
                 case IntentType.PHOTO:
                     image_prompt: str = str(decision.extracted_data.get("prompt", user_text))
