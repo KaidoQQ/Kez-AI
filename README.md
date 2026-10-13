@@ -51,7 +51,7 @@
 <table>
   <tr>
     <td width="50%">
-      <h3>🧠 Conversational Memory</h3>
+      <h3>🧠 Conversational Memory & Bio</h3>
       <ul>
         <li><b>Sliding Context Window:</b> Reconstructs dynamic context across the last 10 messages to seamlessly resume conversations after breaks.</li>
         <li><b>Zero Meta-Talking:</b> Never outputs dry phrases like <i>"Based on the last 10 messages..."</i>; speaks naturally and authentically.</li>
@@ -61,9 +61,27 @@
     <td width="50%">
       <h3>⚡ Two-Tier Intent Routing</h3>
       <ul>
-        <li><b>Tier 1 (Instant Rules):</b> High-speed regex matching for common phrases (greetings, mood checks, identity) for immediate feedback.</li>
+        <li><b>Tier 1 (Instant Rules):</b> High-speed regex matching for common phrases (greetings, mood checks, identity) with 0 ms response.</li>
         <li><b>Tier 2 (LLM Classifier):</b> Gemini-powered structured JSON intent classification for nuanced, complex requests:
           <code>chat</code> | <code>web_search</code> | <code>photo</code> | <code>file</code>.</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>🐣 Interactive Onboarding Flow</h3>
+      <ul>
+        <li><b>"Get to know Kez":</b> Friendly conversational wizard welcoming new users and learning their name, birth year, and hobbies.</li>
+        <li><b>LLM Information Extraction:</b> Validates inputs using Gemini JSON filters, sanitizes personal facts, and stores them in PostgreSQL.</li>
+        <li><b>Adaptive Placeholders:</b> Contextual prompt hints guiding users step-by-step through setup.</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>🔍 Cascading Web Search Engine</h3>
+      <ul>
+        <li><b>Query Sanitization:</b> Automated noise removal, injection prevention, and keyword extraction.</li>
+        <li><b>3-Tier Scraper Cascade:</b> DuckDuckGo search ➔ <code>httpx</code> ➔ <code>curl_cffi</code> (anti-bot bypass) ➔ <code>Playwright</code> headless browser ➔ snippet fallback.</li>
+        <li><b>Clean Content Extraction:</b> Structured text extraction via <code>trafilatura</code> with 5-minute TTLCache and citation links.</li>
       </ul>
     </td>
   </tr>
@@ -93,32 +111,54 @@
 
 ```mermaid
 flowchart TD
-    User([👤 User]) -->|Inputs message| UI[🖥️ PyQt6 GUI / MainWindow]
-    UI -->|qasync EventLoop| Agent[🤖 KezAgent Orchestrator]
+    User([👤 User]) -->|Inputs message / clicks Meet Kez| UI[🖥️ PyQt6 GUI / MainWindow]
+    UI -->|qasync EventLoop| CoreDispatch{Dispatch Mode}
 
-    subgraph RouterArea [" ⚡ Dual-Tier Intent Router "]
-        Agent --> Router{route_intent}
+    subgraph OnboardingArea [" 🐣 Onboarding Flow "]
+        CoreDispatch -->|Onboarding Active / Button Clicked| OnboardingPipe[🐣 OnboardingManager]
+        OnboardingPipe -->|Step Validation: Name / Age / Interests| ValLLM[🧠 Gemini Extraction & Validation]
+        ValLLM -->|Save User Profile| DB[(🐘 PostgreSQL Database)]
+        OnboardingPipe -->|Step Prompts & Welcome| UI
+    end
+
+    subgraph AgentArea [" 🤖 KezAgent Orchestrator "]
+        CoreDispatch -->|Standard Chat Message| Agent[🤖 KezAgent]
+        Agent --> Router{⚡ Dual-Tier Router<br/>route_intent}
         Router -->|Regex & Quick Rules| Instant[⚡ Instant Reply 0ms]
         Router -->|Ambiguous Request| LLMRouter[🧠 LLM Intent Classifier]
     end
 
-    Instant -->|Direct Response| UI
+    Instant -->|Direct Feathered Reply| UI
 
     subgraph PipelineArea [" 🚀 Execution Pipelines "]
-        LLMRouter -->|Intent: CHAT| MemPipe[🧠 Memory Pipeline]
-        LLMRouter -->|Intent: WEB_SEARCH| SearchPipe[🔎 Web Search Pipeline]
+        LLMRouter -->|Intent: CHAT| MemPipe[🧠 Memory Pipeline<br/>get_memory]
+        LLMRouter -->|Intent: WEB_SEARCH| SearchPipe[🔎 Web Search Pipeline<br/>web_search]
         LLMRouter -->|Intent: PHOTO| PhotoPipe[🎨 Photo Generation Pipeline]
         LLMRouter -->|Intent: FILE| FilePipe[📁 File Processing Pipeline]
     end
 
+    subgraph SearchDetails [" 🔍 3-Tier Cascading Web Search "]
+        SearchPipe -->|1. Sanitize & Keywords| DDG[🦆 DuckDuckGo Search]
+        DDG -->|2. Parallel Scrape Top-3| Cascade{Cascade Fallback}
+        Cascade -->|Tier 1| Httpx[⚡ httpx]
+        Cascade -->|Tier 2| Curl[🛡️ curl_cffi]
+        Cascade -->|Tier 3| Pw[🎭 Playwright Headless]
+        Cascade -->|Fallback| Snippet[📄 DDG Snippet]
+        Cascade -->|3. Clean Text| Traf[🧹 trafilatura]
+        Traf -->|4. TTL Cache 5m| Cache[(⚡ TTLCache)]
+    end
+
     subgraph DataArea [" 🗄️ Storage & Model Services "]
-        MemPipe <-->|Fetch Last 10 Messages| DB[(🐘 PostgreSQL Database)]
+        MemPipe <-->|Fetch Last 10 Messages + user_info| DB
+        SearchPipe <-->|Fetch user_info Profile| DB
         MemPipe -->|Prompt + Fallback Chain| Gemini[✨ Google Gemini API]
+        SearchPipe -->|Web Context + Fallback Chain| Gemini
         Gemini -->|Save Message| DB
     end
 
     Gemini -->|In-Character Reply| UI
-    DB -.->|Sidebar Chat History| UI
+    SearchPipe -.->|Trigger Search Animation| UI
+    DB -.->|Sidebar Chat Sessions & History| UI
 ```
 
 ---
@@ -149,24 +189,26 @@ kez-ai/
 │   └── 📁 prompts/             # System prompt specifications
 │       ├── routing.txt         # JSON intent classification prompt
 │       ├── memory.txt          # 10-message conversational memory prompt
+│       ├── web_search.txt      # Web synthesis prompt with source citations
 │       └── lg.protect.txt      # Safety guardrails and persona constraints
 ├── 📁 app/
 │   ├── 📁 backend/             # Server & pipeline infrastructure
 │   │   ├── 📁 piplines/start/  # Core request pipelines
 │   │   │   ├── routing.py      # Dual-tier intent router (Rules + Gemini)
-│   │   │   ├── memory.py       # Context assembly & conversation history
-│   │   │   └── web_search.py   # Cascading search pipeline (DuckDuckGo + httpx/curl/Playwright)
+│   │   │   ├── memory.py       # Context assembly & conversation history (10 msgs + user_info)
+│   │   │   ├── onboarding.py   # Interactive multi-step onboarding & profile extractor
+│   │   │   └── web_search.py   # Cascading search pipeline (DDG + httpx/curl/Playwright + trafilatura)
 │   │   └── 📁 utils/           # Shared helper modules
 │   │       ├── llm_fallback.py # Gemini fallback chain handler
 │   │       └── text_cleaner.py # Search query sanitization & keywords extraction
 │   └── 📁 frontend/            # PyQt6 Graphical Interface
 │       ├── 📁 components/      # Modular UI widgets
-│       │   ├── chat_area.py    # Scrollable chat bubbles & formatting
-│       │   ├── input_bar.py    # Interactive input controls & action buttons
-│       │   ├── sidebar.py      # Slide-out chat history drawer
-│       │   └── video_companion.py # Seamless animated video player
+│       │   ├── chat_area.py    # Scrollable chat bubbles & typing indicator
+│       │   ├── input_bar.py    # Interactive input controls & action buttons (Meet Kez, Send)
+│       │   ├── sidebar.py      # Slide-out chat history drawer with context menu
+│       │   └── video_companion.py # Seamless animated video player (idle & search loops)
 │       ├── 📁 assets/          # Application media (MP4 animations, icons)
-│       ├── main_window.py      # Main application window setup
+│       ├── main_window.py      # Main application window setup & orchestrator
 │       └── style.qss           # Modern dark-mode QSS stylesheet
 ├── 📁 core/                    # System utilities & loaders
 │   ├── const.py                # Regular expressions, fallback models & templates
@@ -270,6 +312,7 @@ python main.py
 - [x] ⚡ Fully asynchronous core with `PyQt6` + `qasync`.
 - [x] 🎬 Smooth looping video companion for idle and thinking states.
 - [x] 🐘 PostgreSQL relational history with cascading chat deletions.
+- [x] 🐣 Interactive user onboarding flow ("Get to know Kez") with user bio extraction.
 - [x] 🔀 Two-tier intent router (Instant regex + LLM classifier).
 - [x] 🧠 10-message conversational memory prompt maintaining the bird persona.
 - [x] 🛡️ Multi-model fallback resilience (`gemini-2.5-flash` down to `2.0-flash`).
