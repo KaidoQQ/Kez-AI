@@ -11,3 +11,5 @@ info
 logs/
 app/backend/plan_files.txt
 app/backend/plan_piplines.txt
+app/frontend/cache/images/*
+!app/frontend/cache/images/.gitkeep

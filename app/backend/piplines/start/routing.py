@@ -8,7 +8,7 @@ from typing import Any
 
 from google import genai
 from core.logger import logger
-from core.const import (
+from core.constants.const import (
     MODELS_FALLBACK,
     PROMPTS,
     PROMPTS_DIR,

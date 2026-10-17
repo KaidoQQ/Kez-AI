@@ -26,7 +26,7 @@ except ImportError:
 import trafilatura
 
 from core.logger import logger
-from core.const import PROMPTS, PROMPTS_DIR
+from core.constants.const import PROMPTS, PROMPTS_DIR
 from app.backend.utils.llm_fallback import generate_response_with_fallback
 from app.backend.utils.text_cleaner import sanitize_search_query, extract_keywords
 

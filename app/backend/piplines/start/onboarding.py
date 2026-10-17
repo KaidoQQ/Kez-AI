@@ -3,7 +3,7 @@ import re
 from typing import Any
 from core.logger import logger
 from core.loader import db
-from core.const import PROMPTS, ONBOARDING_FINAL_GREETING
+from core.constants.const import PROMPTS, ONBOARDING_FINAL_GREETING
 from app.backend.utils.llm_fallback import generate_response_with_fallback
 
 
