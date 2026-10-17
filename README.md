@@ -103,6 +103,25 @@
       </ul>
     </td>
   </tr>
+  <tr>
+    <td width="50%">
+      <h3>⚡ Real-Time Streaming Pipeline</h3>
+      <ul>
+        <li><b>Instant Token Streaming:</b> Uses <code>generate_content_stream</code> so user sees Kez "typing" letter-by-letter / word-by-word without 5-10s waiting.</li>
+        <li><b>Auto-Resizing Bubbles:</b> Real-time dynamic document reflow and height adaptation with smooth bottom autoscroll.</li>
+        <li><b>Fallback Resilient:</b> Automatic cascade over backup models if streaming connection drops.</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>🎨 Visual Image Generation & Cache</h3>
+      <ul>
+        <li><b>Google Imagen 3:</b> Photorealistic & artistic image synthesis via <code>imagen-3.0-generate-002</code> / <code>imagen-3.0-fast</code>.</li>
+        <li><b>Prompt Enhancement:</b> Automatically enriches raw user prompts into professional English photographic prompts.</li>
+        <li><b>Front-End Cache & Auto-Cleanup:</b> Images stored in <code>app/frontend/cache/images/</code> with an automated 7-day TTL cleanup at launch.</li>
+        <li><b>Interactive Card Actions:</b> Right-click context menu allows user to <b>Скопировать</b> (Copy to Clipboard) or <b>Скачать...</b> (Save As to any folder).</li>
+      </ul>
+    </td>
+  </tr>
 </table>
 
 ---
@@ -170,7 +189,8 @@ flowchart TD
 | **Language** | 🐍 **Python 3.10+** | Modern asynchronous Python with strict typing |
 | **GUI Framework** | 🖼️ **PyQt6** & **QtMultimedia** | High-DPI desktop interface, QSS stylesheets, video rendering |
 | **Async Engine** | ⚡ **qasync** & **asyncio** | Concurrent execution bridging Qt event loop and async tasks |
-| **AI / LLM** | ✨ **Google Gemini API** (`google-genai`) | Multimodal LLMs with fallback resilience pipeline |
+| **AI / LLM & Streaming** | ✨ **Google Gemini API** (`google-genai`) | Multimodal LLMs with fallback resilience pipeline & token streaming |
+| **Image Generation** | 🎨 **Google Gemini Image & Pollinations AI** | Multi-tier pipeline with LLM prompt engineering and unlimited free fallback |
 | **Web Search & Scraping** | 🔍 **DuckDuckGo, httpx, curl_cffi, Playwright, trafilatura** | Cascading web retrieval with Cloudflare bypass & text extraction |
 | **Database** | 🐘 **PostgreSQL 16** | Relational chat histories, user facts, indexes & triggers |
 | **DB Drivers** | 🔌 **asyncpg** & **psycopg2** | High-performance asynchronous connection pooling & transactions |
@@ -184,33 +204,40 @@ flowchart TD
 ```text
 kez-ai/
 ├── 📁 Kez/                      # Core AI Agent & Prompt Engineering
-│   ├── kez.py                  # KezAgent orchestrator & session manager
+│   ├── kez.py                  # KezAgent orchestrator & streaming session manager
 │   ├── prepare.py              # Gemini client initialization & prompt loader
 │   └── 📁 prompts/             # System prompt specifications
 │       ├── routing.txt         # JSON intent classification prompt
 │       ├── memory.txt          # 10-message conversational memory prompt
 │       ├── web_search.txt      # Web synthesis prompt with source citations
+│       ├── image_generation.txt # English enhancement prompt for Imagen 3
 │       └── lg.protect.txt      # Safety guardrails and persona constraints
 ├── 📁 app/
 │   ├── 📁 backend/             # Server & pipeline infrastructure
 │   │   ├── 📁 piplines/start/  # Core request pipelines
 │   │   │   ├── routing.py      # Dual-tier intent router (Rules + Gemini)
-│   │   │   ├── memory.py       # Context assembly & conversation history (10 msgs + user_info)
+│   │   │   ├── memory.py       # Context assembly & streaming memory (10 msgs + user_info)
+│   │   │   ├── image_gen.py    # Google Imagen 3 visual generation pipeline
 │   │   │   ├── onboarding.py   # Interactive multi-step onboarding & profile extractor
 │   │   │   └── web_search.py   # Cascading search pipeline (DDG + httpx/curl/Playwright + trafilatura)
 │   │   └── 📁 utils/           # Shared helper modules
-│   │       ├── llm_fallback.py # Gemini fallback chain handler
+│   │       ├── llm_fallback.py # Gemini fallback chain handler & stream generator
+│   │       ├── image_cache.py  # Image cache manager with 7-day TTL cleanup
 │   │       └── text_cleaner.py # Search query sanitization & keywords extraction
 │   └── 📁 frontend/            # PyQt6 Graphical Interface
 │       ├── 📁 components/      # Modular UI widgets
-│       │   ├── chat_area.py    # Scrollable chat bubbles & typing indicator
+│       │   ├── chat_area.py    # Scrollable chat bubbles & real-time streaming
+│       │   ├── chat_image_widget.py # Interactive photo card (Copy / Download)
 │       │   ├── input_bar.py    # Interactive input controls & action buttons (Meet Kez, Send)
 │       │   ├── sidebar.py      # Slide-out chat history drawer with context menu
 │       │   └── video_companion.py # Seamless animated video player (idle & search loops)
+│       ├── 📁 cache/images/    # Front-end local image cache (auto-cleans > 7 days)
 │       ├── 📁 assets/          # Application media (MP4 animations, icons)
-│       ├── main_window.py      # Main application window setup & orchestrator
+│       ├── main_window.py      # Main application window setup & streaming orchestrator
 │       └── style.qss           # Modern dark-mode QSS stylesheet
 ├── 📁 core/                    # System utilities & loaders
+│   ├── 📁 constants/           # Dedicated modular constants
+│   │   └── image_const.py      # Imagen models, cache TTL, and image formats
 │   ├── const.py                # Regular expressions, fallback models & templates
 │   ├── loader.py               # Database and environment initialization
 │   └── logger.py               # Structured console & JSONL logger
@@ -317,7 +344,8 @@ python main.py
 - [x] 🧠 10-message conversational memory prompt maintaining the bird persona.
 - [x] 🛡️ Multi-model fallback resilience (`gemini-2.5-flash` down to `2.0-flash`).
 - [x] 🔍 Web search pipeline integration (DuckDuckGo + 3-tier cascade httpx/curl_cffi/Playwright).
-- [ ] 🎨 Text-to-Image generation pipeline (Google Imagen / Fal.ai).
+- [x] ⚡ Real-Time Streaming Pipeline (`generate_content_stream` token streaming in PyQt6).
+- [x] 🎨 Text-to-Image generation pipeline (Google Imagen 3 with prompt engineering, local cache, and right-click Copy/Download).
 - [ ] 📁 File analyzer and document exporter (PDF, Markdown, TXT).
 - [ ] 🎙️ Voice synthesis & speech recognition (TTS / STT integration).
 

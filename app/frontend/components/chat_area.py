@@ -195,6 +195,59 @@ class ChatAreaWidget(QScrollArea):
         QTimer.singleShot(50, browser.update_auto_height)
         QTimer.singleShot(100, self.scroll_to_bottom)
 
+    def create_streaming_message(self, msg_type: str = "ai") -> tuple[MessageBrowser, list[str]]:
+        """
+        Создает пустой пузырь сообщения для потоковой передачи (стриминга).
+        Возвращает кортеж (MessageBrowser, buffer_list).
+        """
+        browser = MessageBrowser()
+        browser.setProperty("msg_type", msg_type)
+        browser.setMaximumWidth(720)
+        browser.setHtml("")
+
+        layout = QHBoxLayout()
+        if msg_type == "user":
+            layout.addStretch()
+            layout.addWidget(browser)
+        else:
+            layout.addWidget(browser)
+            layout.addStretch()
+
+        self.chat_layout.insertLayout(self.chat_layout.count() - 1, layout)
+        buffer: list[str] = []
+        return browser, buffer
+
+    def append_stream_chunk(self, browser: MessageBrowser, buffer: list[str], chunk: str) -> None:
+        """
+        Добавляет новый кусочек текста в стриминговое сообщение,
+        обновляет форматирование и высоту пузыря в реальном времени.
+        """
+        buffer.append(chunk)
+        full_text: str = "".join(buffer)
+        formatted_html: str = markdown_to_clean_html(full_text)
+        browser.setHtml(formatted_html)
+        browser.update_auto_height()
+        self.scroll_to_bottom()
+
+    def add_image_message(self, image_path: str, prompt: str = "", sender: str = "ai") -> None:
+        """
+        Добавляет в чат интерактивную карточку сгенерированного изображения
+        с контекстным меню 'Скопировать' и 'Скачать'.
+        """
+        from app.frontend.components.chat_image_widget import ChatImageWidget
+        image_widget = ChatImageWidget(image_path, prompt)
+
+        layout = QHBoxLayout()
+        if sender == "user":
+            layout.addStretch()
+            layout.addWidget(image_widget)
+        else:
+            layout.addWidget(image_widget)
+            layout.addStretch()
+
+        self.chat_layout.insertLayout(self.chat_layout.count() - 1, layout)
+        QTimer.singleShot(50, self.scroll_to_bottom)
+
     def show_typing_indicator(self) -> None:
         """Отображает анимированный индикатор набора текста."""
         if self._typing_widget is not None:

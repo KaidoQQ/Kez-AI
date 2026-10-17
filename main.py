@@ -9,6 +9,12 @@ from core.logger import logger
 
 async def startup(window: KezMainWindow) -> None:
     try:
+        from app.backend.utils.image_cache import ensure_cache_directories, cleanup_expired_cache
+        ensure_cache_directories()
+        deleted_cached_count: int = cleanup_expired_cache()
+        if deleted_cached_count > 0:
+            logger.info(f"Очищено {deleted_cached_count} устаревших изображений из кэша.")
+
         await db.connect()
         await db.create_tables()
         logger.info("Database connected and tables verified.")

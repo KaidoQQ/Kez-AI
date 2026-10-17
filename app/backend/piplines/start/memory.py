@@ -3,7 +3,7 @@ from typing import Any
 
 from core.loader import db
 from core.logger import logger
-from core.const import PROMPTS, PROMPTS_DIR
+from core.constants.const import PROMPTS, PROMPTS_DIR
 from app.backend.utils.llm_fallback import generate_response_with_fallback
 
 
@@ -95,6 +95,49 @@ async def get_memory(user_text: str, chat_id: int) -> str:
     final_prompt: str = build_memory_prompt(prompt_template, formatted_history, user_text, profile_text)
 
     return await generate_response_with_fallback(final_prompt)
+
+
+async def get_memory_stream(user_text: str, chat_id: int):
+    """
+    Потоковый пайплайн памяти (стриминг):
+    1. Запрашивает профиль пользователя из базы.
+    2. Извлекает последние 10 сообщений.
+    3. Подставляет всё в промпт памяти.
+    4. Выдает чанки ответа через асинхронный генератор.
+    """
+    try:
+        user_info: dict[str, Any] | None = await db.get_user_info()
+    except Exception as e:
+        logger.error(f"Ошибка при получении профиля пользователя из БД: {e}")
+        user_info = None
+
+    profile_text: str = format_user_profile(user_info)
+
+    try:
+        messages: list[dict[str, Any]] = await db.get_chat_messages(chat_id)
+    except Exception as e:
+        logger.error(f"Ошибка при получении истории чата {chat_id} из БД: {e}")
+        messages = []
+
+    messages_latest: list[dict[str, Any]] = messages[-10:] if len(messages) > 10 else messages
+    formatted_history: str = format_chat_history(messages_latest)
+
+    prompt_template: str = PROMPTS.get("memory", "")
+    if not prompt_template:
+        try:
+            memory_prompt_path: Path = PROMPTS_DIR / "memory.txt"
+            if memory_prompt_path.exists():
+                with open(memory_prompt_path, "r", encoding="utf-8") as f:
+                    prompt_template = f.read().strip()
+        except Exception as e:
+            logger.error(f"Не удалось прочитать memory.txt: {e}")
+
+    final_prompt: str = build_memory_prompt(prompt_template, formatted_history, user_text, profile_text)
+
+    from app.backend.utils.llm_fallback import generate_stream_with_fallback
+    async for chunk in generate_stream_with_fallback(final_prompt):
+        yield chunk
+
 
     
 

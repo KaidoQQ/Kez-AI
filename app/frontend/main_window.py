@@ -226,7 +226,21 @@ class KezMainWindow(QMainWindow):
             for msg in messages:
                 sender: str = str(msg.get("sender_type", "user"))
                 text: str = str(msg.get("text_content", ""))
-                self.chat_area.add_message(text, sender, animate=False)
+                # Проверяем, содержит ли сообщение сгенерированное изображение
+                if "[IMAGE:" in text:
+                    parts = text.split("[IMAGE:")
+                    for part in parts:
+                        if "]" in part:
+                            img_path, remaining_text = part.split("]", 1)
+                            img_path = img_path.strip()
+                            if os.path.exists(img_path):
+                                self.chat_area.add_image_message(img_path, sender=sender)
+                            if remaining_text.strip():
+                                self.chat_area.add_message(remaining_text.strip(), sender, animate=False)
+                        elif part.strip():
+                            self.chat_area.add_message(part.strip(), sender, animate=False)
+                else:
+                    self.chat_area.add_message(text, sender, animate=False)
         except Exception as e:
             logger.error(f"Не удалось загрузить сообщения для чата {chat_id}: {e}")
 
@@ -296,26 +310,54 @@ class KezMainWindow(QMainWindow):
         # Показ индикатора набора текста
         self.chat_area.show_typing_indicator()
 
-        # Генерация ответа агентом
+        # Потоковый стриминг ответа Kez
+        streaming_browser = None
+        stream_buffer: list[str] = []
+        saved_db_content: list[str] = []
+
         try:
-            reply: str = await self.agent.generate_reply(text, self.current_chat_id)
+            async for event in self.agent.generate_reply_stream(text, self.current_chat_id):
+                # Скрываем индикатор при первом событии
+                self.chat_area.hide_typing_indicator()
+
+                if event.event_type == "token" and event.text:
+                    if streaming_browser is None:
+                        streaming_browser, stream_buffer = self.chat_area.create_streaming_message("ai")
+                    self.chat_area.append_stream_chunk(streaming_browser, stream_buffer, event.text)
+                    saved_db_content.append(event.text)
+
+                elif event.event_type == "image":
+                    streaming_browser = None
+                    stream_buffer = []
+
+                    if event.image_path and os.path.exists(event.image_path):
+                        self.chat_area.add_image_message(event.image_path, event.prompt, "ai")
+                        saved_db_content.append(f"\n[IMAGE:{event.image_path}]\n")
+
+                    if event.text:
+                        self.chat_area.add_message(event.text, "ai", animate=True)
+                        saved_db_content.append(event.text)
+
+                elif event.event_type == "error":
+                    if streaming_browser is None:
+                        streaming_browser, stream_buffer = self.chat_area.create_streaming_message("ai")
+                    self.chat_area.append_stream_chunk(streaming_browser, stream_buffer, event.text)
+                    saved_db_content.append(event.text)
+
         except Exception as e:
-            logger.error(f"Ошибка при генерации ответа KezAgent: {e}")
-            reply = "Произошла ошибка при обращении к агенту Kez."
+            logger.error(f"Ошибка при потоковой генерации ответа KezAgent: {e}")
+            if streaming_browser is None:
+                self.chat_area.add_message("Ой, у меня что-то пошло не так при обработке сообщения... Чирик! 🐦", "ai")
         finally:
             self.chat_area.hide_typing_indicator()
 
-        # Анимация поиска если запущен веб-поиск
-        if "[Web Search]" in reply:
-            self.video_companion.play_search()
-
-        self.chat_area.add_message(reply, "ai", animate=True)
-
-        # Сохранение ответа в БД
-        try:
-            await db.add_message_to_chat(self.current_chat_id, "ai", reply)
-        except Exception as e:
-            logger.error(f"Не удалось сохранить ответ ассистента в БД: {e}")
+        # Сохранение полного ответа в БД
+        final_saved_text: str = "".join(saved_db_content).strip()
+        if final_saved_text:
+            try:
+                await db.add_message_to_chat(self.current_chat_id, "ai", final_saved_text)
+            except Exception as e:
+                logger.error(f"Не удалось сохранить ответ ассистента в БД: {e}")
 
         # Возврат к idle анимации
         self.video_companion.play_idle()
