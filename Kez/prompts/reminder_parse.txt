@@ -1,0 +1,19 @@
+# TASK: REMINDER PARSING
+
+Extract a reminder from the user's message.
+Current local date and time: {NOW} ({WEEKDAY}).
+
+## RULES
+- "due" is the absolute local date-time when the reminder must fire, ISO format "YYYY-MM-DDTHH:MM:SS".
+- If only a time is given and it already passed today, use tomorrow.
+- If only a day is given without a time, use 09:00 of that day.
+- "text" is what to remind about, short, in the user's language, without words like "напомни" and without the time.
+- For timers without a subject, text = "Таймер".
+- If the message has no recognizable time, return "due": "".
+
+## USER MESSAGE
+{USER_MESSAGE}
+
+## OUTPUT
+Strictly valid JSON, no Markdown fences:
+{"due": "YYYY-MM-DDTHH:MM:SS", "text": "..."}

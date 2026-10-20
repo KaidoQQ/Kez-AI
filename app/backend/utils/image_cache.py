@@ -18,18 +18,19 @@ def ensure_cache_directories() -> Path:
         raise
 
 
-def cleanup_expired_cache(max_age_seconds: int = CACHE_EXPIRATION_SECONDS) -> int:
+def cleanup_expired_cache(max_age_seconds: int = CACHE_EXPIRATION_SECONDS, cache_dir: Path = CACHE_IMAGES_DIR) -> int:
     """
-    Проверяет файлы в кэше изображений и удаляет те, возраст которых превышает max_age_seconds (по умолчанию 7 дней).
+    Проверяет файлы в директории кэша (по умолчанию — изображения) и удаляет те,
+    возраст которых превышает max_age_seconds (по умолчанию 7 дней).
     Возвращает количество удаленных файлов.
     """
     deleted_count: int = 0
     try:
-        if not CACHE_IMAGES_DIR.exists():
+        if not cache_dir.exists():
             return 0
 
         current_time: float = time.time()
-        for item in CACHE_IMAGES_DIR.iterdir():
+        for item in cache_dir.iterdir():
             if item.is_file():
                 try:
                     file_stat = item.stat()
@@ -44,6 +45,6 @@ def cleanup_expired_cache(max_age_seconds: int = CACHE_EXPIRATION_SECONDS) -> in
         if deleted_count > 0:
             logger.info(f"Очистка кэша завершена: удалено {deleted_count} файлов.")
     except Exception as e:
-        logger.error(f"Ошибка при очистке кэша изображений: {e}")
+        logger.error(f"Ошибка при очистке кэша {cache_dir}: {e}")
 
     return deleted_count

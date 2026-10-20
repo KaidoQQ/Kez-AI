@@ -1,8 +1,13 @@
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtSignal, QPoint
+import re
+from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtSignal, QPoint, QTimer
 from PyQt6.QtWidgets import (
     QFrame, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem,
-    QMenu, QInputDialog, QMessageBox
+    QMenu, QInputDialog, QMessageBox, QLineEdit
 )
+
+# Пометка элемента списка как результата поиска (у таких нет контекстного меню Rename/Delete)
+SEARCH_RESULT_ROLE: int = Qt.ItemDataRole.UserRole + 1
+SNIPPET_LENGTH: int = 70
 
 
 class SidebarWidget(QFrame):
@@ -14,6 +19,7 @@ class SidebarWidget(QFrame):
     chat_selected = pyqtSignal(int)
     chat_rename_requested = pyqtSignal(int, str)
     chat_delete_requested = pyqtSignal(int)
+    search_requested = pyqtSignal(str)   # пустая строка — сброс поиска
 
     def __init__(self, parent: QFrame | None = None) -> None:
         super().__init__(parent)
@@ -37,6 +43,22 @@ class SidebarWidget(QFrame):
         self.new_chat_btn.clicked.connect(self.new_chat_requested.emit)
         self.layout.addWidget(self.new_chat_btn)
 
+        # Поиск по истории всех чатов (с задержкой 350 мс после ввода)
+        self.search_field = QLineEdit()
+        self.search_field.setObjectName("search_field")
+        self.search_field.setPlaceholderText("🔍 Поиск по чатам...")
+        self.search_field.setClearButtonEnabled(True)
+        self.search_field.setStyleSheet(
+            "QLineEdit#search_field { background-color: rgba(23, 32, 51, 160); color: #F0EADA;"
+            " border: 1px solid rgba(240, 234, 218, 40); border-radius: 10px; padding: 6px 10px; font-size: 12px; margin-bottom: 8px; }"
+        )
+        self._search_timer = QTimer(self)
+        self._search_timer.setSingleShot(True)
+        self._search_timer.setInterval(350)
+        self._search_timer.timeout.connect(lambda: self.search_requested.emit(self.search_field.text().strip()))
+        self.search_field.textChanged.connect(lambda _: self._search_timer.start())
+        self.layout.addWidget(self.search_field)
+
         # Список чатов
         self.chat_list_widget = QListWidget()
         self.chat_list_widget.setObjectName("chat_list_widget")
@@ -51,7 +73,7 @@ class SidebarWidget(QFrame):
             return
 
         chat_id_data = item.data(Qt.ItemDataRole.UserRole)
-        if chat_id_data is None:
+        if chat_id_data is None or item.data(SEARCH_RESULT_ROLE):
             return
         chat_id: int = int(chat_id_data)
         current_title: str = item.text()
@@ -121,6 +143,40 @@ class SidebarWidget(QFrame):
             self.chat_list_widget.clearSelection()
 
         self.chat_list_widget.blockSignals(False)
+
+    @property
+    def is_searching(self) -> bool:
+        return bool(self.search_field.text().strip())
+
+    def show_search_results(self, query: str, results: list[dict]) -> None:
+        """Показывает найденные сообщения: название чата + фрагмент вокруг совпадения."""
+        self.chat_list_widget.blockSignals(True)
+        self.chat_list_widget.clear()
+
+        if not results:
+            empty_item = QListWidgetItem(f"Ничего не найдено по «{query}»")
+            empty_item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.chat_list_widget.addItem(empty_item)
+
+        for result in results:
+            snippet: str = self._make_snippet(str(result.get("text_content", "")), query)
+            item = QListWidgetItem(f"{result.get('title', 'Чат')}\n{snippet}")
+            item.setData(Qt.ItemDataRole.UserRole, int(result["chat_id"]))
+            item.setData(SEARCH_RESULT_ROLE, True)
+            item.setToolTip(str(result.get("text_content", ""))[:500])
+            self.chat_list_widget.addItem(item)
+
+        self.chat_list_widget.blockSignals(False)
+
+    @staticmethod
+    def _make_snippet(text: str, query: str) -> str:
+        """Вырезает фрагмент сообщения вокруг первого совпадения запроса."""
+        clean: str = re.sub(r"\[(IMAGE|FILE):[^\]]*\]", "", text)
+        clean = re.sub(r"\s+", " ", clean).strip()
+        position: int = clean.lower().find(query.lower().split()[0]) if query.split() else -1
+        start: int = max(0, position - 20) if position >= 0 else 0
+        snippet: str = clean[start:start + SNIPPET_LENGTH]
+        return ("…" if start > 0 else "") + snippet + ("…" if start + SNIPPET_LENGTH < len(clean) else "")
 
     def get_current_chat_title(self) -> str:
         current_item = self.chat_list_widget.currentItem()

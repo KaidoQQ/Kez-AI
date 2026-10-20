@@ -1,0 +1,83 @@
+/* Светлая тема: накладывается поверх style.qss (переопределяет цвета, сохраняя геометрию) */
+QMainWindow {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #F7F3EA, stop:1 #E6EDF7);
+}
+
+#sidebar {
+    background-color: rgba(255, 255, 255, 210);
+    border-right: 1px solid rgba(29, 43, 83, 40);
+}
+#sidebar QLabel {
+    color: #1D2B53;
+}
+
+QScrollBar::handle:vertical {
+    background: rgba(29, 43, 83, 50);
+}
+QScrollBar::handle:vertical:hover {
+    background: rgba(29, 43, 83, 110);
+}
+
+#input_field, #search_field {
+    background-color: rgba(255, 255, 255, 230);
+    color: #1D2B53;
+    border: 2px solid rgba(29, 43, 83, 40);
+}
+#input_field:focus, #search_field:focus {
+    border: 2px solid rgba(29, 43, 83, 120);
+    background-color: #FFFFFF;
+}
+
+#send_btn, #action_btn {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2B3E6B, stop:1 #1D2B53);
+    color: #FFFFFF;
+    border: 1px solid rgba(29, 43, 83, 60);
+}
+#send_btn:hover, #action_btn:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3A5290, stop:1 #2B3E6B);
+}
+
+#menu_btn:hover, #settings_btn:hover, #pet_btn:hover {
+    background-color: rgba(29, 43, 83, 25);
+}
+
+QTextBrowser[msg_type="user"] {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #2B3E6B, stop:1 #1D2B53);
+    color: #FFFFFF;
+    border: 1px solid rgba(29, 43, 83, 30);
+}
+QTextBrowser[msg_type="ai"] {
+    background-color: rgba(255, 255, 255, 235);
+    color: #1F2937;
+    border: 1px solid rgba(29, 43, 83, 25);
+}
+.QLabel[msg_type="typing"] {
+    background-color: rgba(255, 255, 255, 180);
+    color: #4B5563;
+    border: 1px dashed rgba(29, 43, 83, 40);
+}
+
+#new_chat_btn {
+    color: #1D2B53;
+    border: 1px solid rgba(29, 43, 83, 60);
+}
+#new_chat_btn:hover {
+    background-color: rgba(29, 43, 83, 20);
+}
+
+QListWidget#chat_list_widget {
+    color: #1D2B53;
+}
+QListWidget#chat_list_widget::item {
+    background-color: rgba(255, 255, 255, 200);
+    color: #1F2937;
+    border: 1px solid rgba(29, 43, 83, 25);
+}
+QListWidget#chat_list_widget::item:hover {
+    background-color: rgba(43, 62, 107, 40);
+    color: #1D2B53;
+}
+QListWidget#chat_list_widget::item:selected {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2B3E6B, stop:1 #1D2B53);
+    color: #FFFFFF;
+}

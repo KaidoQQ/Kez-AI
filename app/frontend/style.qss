@@ -125,7 +125,7 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
 }
 
 /* Стили для новых кнопок */
-#settings_btn {
+#settings_btn, #pet_btn {
     background-color: rgba(0, 0, 0, 0);
     color: #F0EADA;
     border: none;
@@ -133,7 +133,7 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
     font-size: 20px;
     padding: 0px;
 }
-#settings_btn:hover {
+#settings_btn:hover, #pet_btn:hover {
     background-color: rgba(240, 234, 218, 20);
 }
 

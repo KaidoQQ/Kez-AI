@@ -40,8 +40,27 @@ class DataBase(BaseDatabase):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             ''',
+            '''
+            CREATE TABLE IF NOT EXISTS user_facts(
+                id SERIAL PRIMARY KEY,
+                fact TEXT NOT NULL UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            ''',
+            '''
+            CREATE TABLE IF NOT EXISTS reminders(
+                id SERIAL PRIMARY KEY,
+                chat_id INTEGER REFERENCES history_chats(id) ON DELETE SET NULL,
+                text_content TEXT NOT NULL,
+                due_at TIMESTAMP NOT NULL,
+                is_done BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            ''',
             "CREATE INDEX IF NOT EXISTS idx_history_chats_id ON history_chats (id)",
-            "CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages (chat_id)"
+            "CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages (chat_id)",
+            "CREATE INDEX IF NOT EXISTS idx_messages_fts ON messages USING GIN (to_tsvector('simple', text_content))",
+            "CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders (is_done, due_at)"
         )
 
         triggers = (
@@ -238,4 +257,117 @@ class DataBase(BaseDatabase):
             return True
         except Exception as e:
             logger.error(f"Ошибка при сохранении user_info в БД: {e}")
-            return False
+            return False
+
+    # ---------- Поиск по истории ----------
+
+    async def search_messages(self, query: str, limit: int = 30) -> list[dict]:
+        """
+        Полнотекстовый поиск по сообщениям всех чатов (to_tsvector 'simple' + ILIKE для частичных слов).
+        Возвращает chat_id, title, text_content, created_at — самые релевантные и свежие первыми.
+        """
+        cleaned: str = query.strip()
+        if not cleaned:
+            return []
+        try:
+            records = await self.fetchall(
+                """
+                SELECT m.chat_id, h.title, m.text_content, m.created_at,
+                       ts_rank(to_tsvector('simple', m.text_content), plainto_tsquery('simple', $1)) AS rank
+                FROM messages m
+                JOIN history_chats h ON h.id = m.chat_id
+                WHERE to_tsvector('simple', m.text_content) @@ plainto_tsquery('simple', $1)
+                   OR m.text_content ILIKE '%' || $2 || '%'
+                ORDER BY rank DESC, m.created_at DESC
+                LIMIT $3
+                """,
+                cleaned, cleaned.replace("%", r"\%").replace("_", r"\_"), limit
+            )
+            return [dict(record) for record in records]
+        except Exception as e:
+            logger.error(f"Ошибка поиска по сообщениям '{cleaned}': {e}")
+            return []
+
+    # ---------- Долгосрочная память (факты о пользователе) ----------
+
+    async def get_user_facts(self, limit: int = 50) -> list[dict]:
+        """Возвращает сохранённые факты о пользователе (новые первыми)."""
+        try:
+            records = await self.fetchall(
+                "SELECT id, fact, created_at FROM user_facts ORDER BY created_at DESC LIMIT $1", limit
+            )
+            return [dict(record) for record in records]
+        except Exception as e:
+            logger.error(f"Ошибка при получении фактов о пользователе: {e}")
+            return []
+
+    async def add_user_facts(self, facts: list[str]) -> int:
+        """Добавляет новые факты, пропуская дубликаты. Возвращает число добавленных."""
+        added: int = 0
+        try:
+            async with self.transaction() as connection:
+                for fact in facts:
+                    status: str = await connection.execute(
+                        "INSERT INTO user_facts (fact) VALUES ($1) ON CONFLICT (fact) DO NOTHING", fact
+                    )
+                    if status.endswith(" 1"):
+                        added += 1
+            if added:
+                logger.info(f"Сохранено новых фактов о пользователе: {added}")
+        except Exception as e:
+            logger.error(f"Ошибка при сохранении фактов о пользователе: {e}")
+        return added
+
+    async def delete_user_fact(self, fact_id: int) -> bool:
+        try:
+            await self.execute("DELETE FROM user_facts WHERE id = $1", fact_id)
+            return True
+        except Exception as e:
+            logger.error(f"Не удалось удалить факт ID={fact_id}: {e}")
+            return False
+
+    # ---------- Напоминания ----------
+
+    async def add_reminder(self, chat_id: int | None, text_content: str, due_at: datetime) -> int | None:
+        """Создаёт напоминание и возвращает его id."""
+        try:
+            reminder_id = await self.fetchval(
+                "INSERT INTO reminders (chat_id, text_content, due_at) VALUES ($1, $2, $3) RETURNING id",
+                chat_id, text_content, due_at
+            )
+            logger.info(f"Создано напоминание ID={reminder_id} на {due_at}: '{text_content}'")
+            return reminder_id
+        except Exception as e:
+            logger.error(f"Не удалось создать напоминание: {e}")
+            return None
+
+    async def get_due_reminders(self, now: datetime) -> list[dict]:
+        """Возвращает невыполненные напоминания, время которых наступило."""
+        try:
+            records = await self.fetchall(
+                "SELECT id, chat_id, text_content, due_at FROM reminders WHERE is_done = FALSE AND due_at <= $1 ORDER BY due_at",
+                now
+            )
+            return [dict(record) for record in records]
+        except Exception as e:
+            logger.error(f"Ошибка при получении сработавших напоминаний: {e}")
+            return []
+
+    async def get_pending_reminders(self) -> list[dict]:
+        """Возвращает все будущие (невыполненные) напоминания."""
+        try:
+            records = await self.fetchall(
+                "SELECT id, chat_id, text_content, due_at FROM reminders WHERE is_done = FALSE ORDER BY due_at"
+            )
+            return [dict(record) for record in records]
+        except Exception as e:
+            logger.error(f"Ошибка при получении активных напоминаний: {e}")
+            return []
+
+    async def mark_reminder_done(self, reminder_id: int) -> bool:
+        try:
+            await self.execute("UPDATE reminders SET is_done = TRUE WHERE id = $1", reminder_id)
+            return True
+        except Exception as e:
+            logger.error(f"Не удалось отметить напоминание ID={reminder_id}: {e}")
+            return False

@@ -14,6 +14,8 @@ from core.constants.const import (
     PROMPTS_DIR,
     PHOTO_PATTERNS,
     FILE_PATTERNS,
+    REMINDER_PATTERNS,
+    IMAGE_EDIT_PATTERNS,
     WEB_SEARCH_PATTERNS,
     QUICK_CONVERSATION_RESPONSES,
 )
@@ -26,6 +28,8 @@ class IntentType(str, Enum):
     WEB_SEARCH = "web_search"   # Поиск информации в интернете
     PHOTO = "photo"             # Запрос на создание / генерацию фото
     FILE = "file"               # Запрос на создание, сохранение или работу с файлом
+    REMINDER = "reminder"       # Напоминание / таймер
+    IMAGE_EDIT = "image_edit"   # Редактирование уже существующего изображения
 
 
 @dataclass
@@ -54,6 +58,23 @@ def classify_intent_by_rules(text: str) -> RoutingResult | None:
                 intent=IntentType.CHAT,
                 confidence=1.0,
                 extracted_data={"direct_reply": chosen_reply}
+            )
+
+    # Напоминания и редактирование проверяются раньше фото: «напомни нарисовать...», «перерисуй это фото...»
+    for pattern in REMINDER_PATTERNS:
+        if pattern.search(cleaned_text):
+            return RoutingResult(
+                intent=IntentType.REMINDER,
+                confidence=0.95,
+                extracted_data={"raw_request": cleaned_text}
+            )
+
+    for pattern in IMAGE_EDIT_PATTERNS:
+        if pattern.search(cleaned_text):
+            return RoutingResult(
+                intent=IntentType.IMAGE_EDIT,
+                confidence=0.9,
+                extracted_data={"instruction": cleaned_text}
             )
 
     for pattern in PHOTO_PATTERNS:
@@ -107,7 +128,7 @@ def get_routing_prompt_template() -> str:
 
     logger.error("Файл промпта роутинга не найден, используется аварийный шаблон.")
     return (
-        "Classify intent as JSON: {\"intent\": \"chat\"|\"web_search\"|\"photo\"|\"file\", "
+        "Classify intent as JSON: {\"intent\": \"chat\"|\"web_search\"|\"photo\"|\"file\"|\"reminder\"|\"image_edit\", "
         "\"confidence\": 0.8, \"extracted_data\": {}}\nMessage: {USER_MESSAGE}"
     )
 
