@@ -10,6 +10,7 @@
   <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/Database-PostgreSQL%2016-336791?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"></a>
   <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Container-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
   <a href="./LICENSE.txt"><img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License"></a>
+  <a href="https://github.com/KaidoQQ/Kez-AI/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/KaidoQQ/Kez-AI/tests.yml?branch=master&style=for-the-badge&label=Tests" alt="Tests"></a>
 </p>
 
 <p align="center">
@@ -492,7 +493,9 @@ python main.py
 python -m pytest tests -q
 ```
 
-Tests run Qt in offscreen mode and need neither a database nor an API key: they cover the intent rules, all six export formats, reminder time parsing, marker parsing, fact extraction helpers, wake-word matching and settings.
+Tests run Qt in offscreen mode and need no API key: they cover the intent rules, all six export formats, reminder time parsing, marker parsing, fact extraction helpers, wake-word matching and settings. `tests/test_database.py` runs against the PostgreSQL from `DATABASE_URL` (start it with `docker-compose up -d db`) and is skipped if the database is unreachable.
+
+**CI:** [GitHub Actions](.github/workflows/tests.yml) runs the whole suite on every push and pull request to `master` / `dev`, with a PostgreSQL 16 service container.
 
 ---
 
