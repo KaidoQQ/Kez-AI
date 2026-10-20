@@ -16,4 +16,4 @@ app/frontend/cache/images/*
 app/frontend/cache/audio/
 app/frontend/cache/files/
 .pytest_cache/
-tests/
+pytest-report.xml
