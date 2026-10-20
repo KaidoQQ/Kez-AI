@@ -71,6 +71,12 @@ async def get_memory(user_text: str, chat_id: int) -> str:
 
     profile_text: str = format_user_profile(user_info)
 
+    # Долгосрочная память: факты, которые Kez узнал о пользователе из разговоров
+    from app.backend.piplines.start.facts import format_user_facts
+    facts_text: str = format_user_facts(await db.get_user_facts())
+    if facts_text:
+        profile_text = f"{profile_text}\n\n{facts_text}"
+
     try:
         messages: list[dict[str, Any]] = await db.get_chat_messages(chat_id)
     except Exception as e:
@@ -112,6 +118,12 @@ async def get_memory_stream(user_text: str, chat_id: int):
         user_info = None
 
     profile_text: str = format_user_profile(user_info)
+
+    # Долгосрочная память: факты, которые Kez узнал о пользователе из разговоров
+    from app.backend.piplines.start.facts import format_user_facts
+    facts_text: str = format_user_facts(await db.get_user_facts())
+    if facts_text:
+        profile_text = f"{profile_text}\n\n{facts_text}"
 
     try:
         messages: list[dict[str, Any]] = await db.get_chat_messages(chat_id)

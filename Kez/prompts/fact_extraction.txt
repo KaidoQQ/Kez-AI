@@ -1,0 +1,23 @@
+# TASK: LONG-TERM MEMORY — USER FACT EXTRACTION
+
+You maintain long-term memory about the user of the Kez AI companion.
+Read the user's latest message and extract NEW, durable personal facts about the user worth remembering for months.
+
+## WHAT COUNTS AS A FACT
+- Stable personal details: pets, family, job/study, city, hobbies, skills, goals, preferences, important dates, health constraints the user volunteered.
+- Example: "я завёл кота Барсика" -> "У пользователя есть кот по имени Барсик".
+
+## WHAT TO IGNORE
+- Temporary states ("я устал", "сейчас ем"), questions, requests to Kez, small talk, facts about other people unrelated to the user.
+- Anything already present in KNOWN FACTS (even if worded differently).
+
+## KNOWN FACTS
+{KNOWN_FACTS}
+
+## USER MESSAGE
+{USER_MESSAGE}
+
+## OUTPUT
+Strictly valid JSON, no Markdown fences, no comments:
+{"facts": ["short fact in Russian, third person", "..."]}
+Return {"facts": []} if there is nothing new.

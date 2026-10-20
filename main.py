@@ -10,8 +10,11 @@ from core.logger import logger
 async def startup(window: KezMainWindow) -> None:
     try:
         from app.backend.utils.image_cache import ensure_cache_directories, cleanup_expired_cache
+        from core.constants.file_const import CACHE_AUDIO_DIR, CACHE_FILES_DIR
         ensure_cache_directories()
         deleted_cached_count: int = cleanup_expired_cache()
+        cleanup_expired_cache(cache_dir=CACHE_AUDIO_DIR)
+        cleanup_expired_cache(cache_dir=CACHE_FILES_DIR)
         if deleted_cached_count > 0:
             logger.info(f"Очищено {deleted_cached_count} устаревших изображений из кэша.")
 
@@ -19,6 +22,7 @@ async def startup(window: KezMainWindow) -> None:
         await db.create_tables()
         logger.info("Database connected and tables verified.")
         await window.load_initial_chat_session()
+        window.start_background_services()
     except Exception as e:
         logger.error(f"Startup failed: {e}")
 
@@ -26,15 +30,10 @@ def main() -> None:
     app = QApplication(sys.argv)
     loop = qasync.QEventLoop(app)
     asyncio.set_event_loop(loop)
-    
-    # Загружаем QSS стили
-    style_path = os.path.join(os.path.dirname(__file__), "app", "frontend", "style.qss")
-    if os.path.exists(style_path):
-        with open(style_path, "r", encoding="utf-8") as f:
-            app.setStyleSheet(f.read())
-    else:
-        print(f"Warning: stylesheet not found at {style_path}")
-        
+    # Окно может прятаться в режим питомца — приложение живёт, пока не выбран «Выход»
+    app.setQuitOnLastWindowClosed(True)
+
+    # QSS-тема (тёмная/светлая) применяется внутри окна по настройкам пользователя
     window = KezMainWindow()
     window.show()
     

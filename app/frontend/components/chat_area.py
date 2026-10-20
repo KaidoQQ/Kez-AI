@@ -248,6 +248,22 @@ class ChatAreaWidget(QScrollArea):
         self.chat_layout.insertLayout(self.chat_layout.count() - 1, layout)
         QTimer.singleShot(50, self.scroll_to_bottom)
 
+    def add_file_message(self, file_path: str, sender: str = "ai") -> None:
+        """Добавляет в чат карточку экспортированного документа (Открыть / Папка / Сохранить как)."""
+        from app.frontend.components.chat_file_widget import ChatFileWidget
+        file_widget = ChatFileWidget(file_path)
+
+        layout = QHBoxLayout()
+        if sender == "user":
+            layout.addStretch()
+            layout.addWidget(file_widget)
+        else:
+            layout.addWidget(file_widget)
+            layout.addStretch()
+
+        self.chat_layout.insertLayout(self.chat_layout.count() - 1, layout)
+        QTimer.singleShot(50, self.scroll_to_bottom)
+
     def show_typing_indicator(self) -> None:
         """Отображает анимированный индикатор набора текста."""
         if self._typing_widget is not None:

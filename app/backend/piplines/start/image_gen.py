@@ -195,3 +195,72 @@ async def generate_image(raw_prompt: str, chat_id: int | None = None) -> ImageGe
         enhanced_prompt=enhanced_prompt,
         error_message="К сожалению, не удалось создать изображение прямо сейчас. Попробуй изменить запрос!"
     )
+
+
+IMAGE_EDIT_MIME_TYPES: dict[str, str] = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+}
+
+
+async def edit_image(source_path: str, instruction: str, chat_id: int | None = None) -> ImageGenerationResult:
+    """
+    Пайплайн редактирования изображения («сделай этот рисунок в стиле аниме»):
+    отправляет исходную картинку + инструкцию в Gemini image-модели (генерация по изображению)
+    и сохраняет результат в кэш фронтенда.
+    """
+    from google.genai import types
+
+    source: Path = Path(source_path)
+    mime_type: str | None = IMAGE_EDIT_MIME_TYPES.get(source.suffix.lower())
+    if not source.is_file() or mime_type is None:
+        return ImageGenerationResult(
+            success=False,
+            original_prompt=instruction,
+            error_message="Не нашёл картинку для редактирования. Прикрепи изображение или сначала попроси меня что-нибудь нарисовать!"
+        )
+
+    try:
+        ensure_cache_directories()
+        client: genai.Client = _get_client()
+    except Exception as e:
+        logger.error(f"Не удалось инициализировать клиент для редактирования изображения: {e}")
+        return ImageGenerationResult(success=False, original_prompt=instruction, error_message="Сервис изображений недоступен.")
+
+    chat_prefix: str = f"chat{chat_id}_" if chat_id else ""
+    saved_path: Path = CACHE_IMAGES_DIR / f"{chat_prefix}edit_{int(time.time())}_{uuid.uuid4().hex[:6]}.png"
+    image_part = types.Part.from_bytes(data=source.read_bytes(), mime_type=mime_type)
+    edit_prompt: str = (
+        f"Edit this image according to the instruction, keep the main subject and composition recognizable. "
+        f"Instruction: {instruction}"
+    )
+
+    for model_name in [m for m in FALLBACK_IMAGE_MODELS if "gemini" in m]:
+        try:
+            logger.info(f"Редактирование изображения через модель {model_name}...")
+            response = await client.aio.models.generate_content(
+                model=model_name,
+                contents=[image_part, edit_prompt],
+                config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
+            )
+            if response and response.candidates:
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data and part.inline_data.data:
+                        saved_path.write_bytes(part.inline_data.data)
+                        logger.info(f"Отредактированное изображение сохранено: {saved_path}")
+                        return ImageGenerationResult(
+                            success=True,
+                            image_path=str(saved_path),
+                            original_prompt=instruction,
+                            enhanced_prompt=edit_prompt,
+                        )
+        except Exception as e:
+            logger.warning(f"Модель {model_name} не смогла отредактировать изображение: {e}")
+
+    return ImageGenerationResult(
+        success=False,
+        original_prompt=instruction,
+        error_message="Не получилось перерисовать картинку — модели редактирования сейчас недоступны. Попробуй позже!"
+    )

@@ -37,9 +37,10 @@ async def generate_response_with_fallback(prompt: str) -> str:
     return ""
 
 
-async def generate_stream_with_fallback(prompt: str):
+async def generate_stream_with_fallback(prompt: str | list):
     """
     Асинхронный генератор для потоковой передачи ответа модели (стриминг).
+    prompt может быть строкой или списком частей (текст + файлы/аудио).
     Перебирает fallback-модели в случае сбоя при запуске стрима.
     Выдает чанки текста (str).
     """

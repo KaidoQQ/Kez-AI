@@ -42,6 +42,11 @@
 - 🧠 **Smart Context Window**: Silently digests previous conversation turns (up to 10 messages) to maintain deep conversational flow.
 - 🎬 **Living Animated Visuals**: Powered by QtMultimedia video loops reflecting idle and thinking/searching states in real-time.
 - 🛡️ **Fault-Tolerant AI Engine**: Resilient Google Gemini fallback model chain ensuring zero downtime.
+- 📁 **Reads & Writes Files**: Drop, paste or attach up to 5 files (PDFs, documents, images, audio) — or ask Kez to export a polished PDF / Word / Excel / PowerPoint / Markdown / TXT document.
+- 🎙️ **Talk Out Loud**: Say "Эй, Kez", send voice messages and hear Kez answer back sentence-by-sentence while it is still thinking.
+- 🧠 **Remembers You**: Kez quietly learns durable facts about you from conversations ("you have a cat named Barsik") and uses them for months.
+- ⏰ **Reminders & Timers**: "Напомни через 20 минут…" — with tray notifications, a message in the chat and an excited Kez animation.
+- 🐤 **Desktop Pet Mode**: Shrink Kez into a tiny always-on-top window in the corner of your screen with a speech bubble and a mini input.
 - 🐘 **Enterprise-Grade Async Storage**: Backed by PostgreSQL with `asyncpg` connection pooling, cascading relations, and automated timestamp triggers.
 
 ---
@@ -122,6 +127,93 @@
       </ul>
     </td>
   </tr>
+  <tr>
+    <td width="50%">
+      <h3>📁 File Analyzer & Document Exporter</h3>
+      <ul>
+        <li><b>Attach Any File:</b> Paperclip button attaches text/code, <code>.docx</code>, PDF, images or audio; Kez streams an analysis or answers your question about it.</li>
+        <li><b>Native Multimodal Input:</b> PDF, images and audio go to Gemini as raw bytes; text files and <code>.docx</code> are parsed locally (no extra dependencies).</li>
+        <li><b>Export to PDF / Markdown / TXT:</b> "Сохрани в pdf", "сделай отчёт в txt" — Kez writes a clean document from the request and recent chat, saves it to <code>~/Documents/Kez AI</code> and shows a file card (Open / Folder / Save As).</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>🎙️ Voice: Speech Recognition & Synthesis</h3>
+      <ul>
+        <li><b>Voice Messages (STT):</b> Microphone button records via <code>QtMultimedia</code>; speech is transcribed by Gemini with the fallback model chain.</li>
+        <li><b>Spoken Replies (TTS):</b> Replies to voice messages are voiced by Gemini TTS (<code>gemini-2.5-flash-preview-tts</code>, voice "Puck"); code and links are skipped.</li>
+        <li><b>Auto-Cleanup:</b> Audio is cached in <code>app/frontend/cache/audio/</code> with the same 7-day TTL.</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>👂 Hands-Free "Эй, Kez" & Streaming Speech</h3>
+      <ul>
+        <li><b>Wake Word:</b> A local voice-activity detector (<code>QAudioSource</code> + RMS level) cuts out phrases; only speech — never silence — is sent to Gemini, and Kez reacts only to phrases starting with "Kez" / "Эй, Kez".</li>
+        <li><b>Sentence-by-Sentence TTS:</b> <code>SpeechQueue</code> synthesizes finished sentences in parallel while the reply is still streaming and plays them strictly in order.</li>
+        <li><b>No Self-Listening:</b> The listener pauses while Kez speaks, records or processes a message.</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>🧠 Long-Term Memory</h3>
+      <ul>
+        <li><b>Automatic Fact Extraction:</b> When you talk about yourself, a background Gemini call extracts new durable facts (pets, job, hobbies, goals) without slowing the reply.</li>
+        <li><b>Cheap Pre-Filter:</b> Questions and small talk never reach the LLM — only messages that look like self-disclosure.</li>
+        <li><b>Under Your Control:</b> Facts live in the <code>user_facts</code> table, are injected into the memory prompt, and can be reviewed or forgotten in <b>Settings → Память</b>.</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>⏰ Reminders, Timers & Tray</h3>
+      <ul>
+        <li><b>Natural Language Time:</b> "через 10 минут", "на полчаса", "завтра в 9:30" are parsed locally in 0 ms; tricky ones ("в пятницу вечером") go to Gemini.</li>
+        <li><b>Reliable Delivery:</b> Reminders are stored in PostgreSQL and checked every 15 s — missed ones fire right after launch.</li>
+        <li><b>System Tray:</b> Notifications, "Open Kez", "Pet mode" and "Quit" in the tray menu; "мои напоминания" lists what is pending.</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>🐤 Desktop Pet Mode</h3>
+      <ul>
+        <li><b>Always on Top:</b> The 🐤 button turns Kez into a small frameless window in the corner of the screen — drag it anywhere.</li>
+        <li><b>Speech Bubble & Mini Input:</b> Ask quick questions right from the pet; answers, reminders and "Эй, Kez" replies appear in a bubble.</li>
+        <li><b>One Click Back:</b> ⤢ button, double-click or the tray icon restores the full window.</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>🖌️ Image Editing</h3>
+      <ul>
+        <li><b>Edit What You See:</b> "Сделай этот рисунок в стиле аниме", "добавь шляпу на последнюю картинку" — Kez takes the last image in the chat and redraws it with Gemini image models.</li>
+        <li><b>Your Own Pictures Too:</b> Attach or paste an image with an edit request; a "describe this picture" request is still treated as analysis.</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>📊 Office Export & Drag-and-Drop</h3>
+      <ul>
+        <li><b>Word / Excel / PowerPoint:</b> <code>.docx</code> with headings, lists and tables; <code>.xlsx</code> with one sheet per table and real numbers; <code>.pptx</code> with a slide per section.</li>
+        <li><b>Attach Any Way:</b> Drag files onto the window, <code>Ctrl+V</code> a screenshot or copied files, or pick several files in the dialog — up to 5 per message.</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>⚙️ Settings Panel</h3>
+      <ul>
+        <li><b>Общие:</b> dark / light theme, preferred Gemini model (moved to the top of the fallback chain), export folder.</li>
+        <li><b>Голос:</b> 8 TTS voices, auto-speak all replies, streaming speech, "Эй, Kez" with adjustable sensitivity.</li>
+        <li><b>Память:</b> toggle fact learning, review and forget remembered facts. Stored in <code>~/.kez_ai/settings.json</code>.</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>🔎 Search Across All Chats</h3>
+      <ul>
+        <li><b>Full-Text Search:</b> PostgreSQL <code>to_tsvector</code> with a GIN index plus <code>ILIKE</code> for partial words.</li>
+        <li><b>Right in the Sidebar:</b> Results show the chat title and a snippet around the match; click to open the chat.</li>
+      </ul>
+    </td>
+  </tr>
 </table>
 
 ---
@@ -153,7 +245,13 @@ flowchart TD
         LLMRouter -->|Intent: CHAT| MemPipe[🧠 Memory Pipeline<br/>get_memory]
         LLMRouter -->|Intent: WEB_SEARCH| SearchPipe[🔎 Web Search Pipeline<br/>web_search]
         LLMRouter -->|Intent: PHOTO| PhotoPipe[🎨 Photo Generation Pipeline]
-        LLMRouter -->|Intent: FILE| FilePipe[📁 File Processing Pipeline]
+        LLMRouter -->|Intent: FILE| FilePipe[📁 File Export Pipeline<br/>PDF / DOCX / XLSX / PPTX / MD / TXT]
+        LLMRouter -->|Intent: REMINDER| ReminderPipe[⏰ Reminder Pipeline]
+        LLMRouter -->|Intent: IMAGE_EDIT| EditPipe[🖌️ Image Edit Pipeline]
+        CoreDispatch -->|Attached / Dropped / Pasted Files| AnalyzePipe[📎 File Analysis Pipeline]
+        UI -->|🎙️ Voice Recording / 👂 Эй, Kez| STT[🗣️ Gemini Speech-to-Text]
+        STT -->|Transcribed Text| CoreDispatch
+        Agent -.->|Background| FactsPipe[🧠 Fact Extraction]
     end
 
     subgraph SearchDetails [" 🔍 3-Tier Cascading Web Search "]
@@ -168,7 +266,10 @@ flowchart TD
     end
 
     subgraph DataArea [" 🗄️ Storage & Model Services "]
-        MemPipe <-->|Fetch Last 10 Messages + user_info| DB
+        MemPipe <-->|Fetch Last 10 Messages + user_info + user_facts| DB
+        FactsPipe -->|New Facts| DB
+        ReminderPipe -->|Save| DB
+        DB -.->|Due Reminders every 15s| Tray[🔔 Tray Notification + Pet Bubble]
         SearchPipe <-->|Fetch user_info Profile| DB
         MemPipe -->|Prompt + Fallback Chain| Gemini[✨ Google Gemini API]
         SearchPipe -->|Web Context + Fallback Chain| Gemini
@@ -176,6 +277,10 @@ flowchart TD
     end
 
     Gemini -->|In-Character Reply| UI
+    AnalyzePipe -->|Text / native PDF, image, audio| Gemini
+    FilePipe -->|Generate Markdown + Save File| Gemini
+    EditPipe -->|Image + Instruction| Gemini
+    UI -.->|Sentence-by-Sentence Speech| TTS[🔊 Gemini TTS SpeechQueue]
     SearchPipe -.->|Trigger Search Animation| UI
     DB -.->|Sidebar Chat Sessions & History| UI
 ```
@@ -191,8 +296,12 @@ flowchart TD
 | **Async Engine** | ⚡ **qasync** & **asyncio** | Concurrent execution bridging Qt event loop and async tasks |
 | **AI / LLM & Streaming** | ✨ **Google Gemini API** (`google-genai`) | Multimodal LLMs with fallback resilience pipeline & token streaming |
 | **Image Generation** | 🎨 **Google Gemini Image & Pollinations AI** | Multi-tier pipeline with LLM prompt engineering and unlimited free fallback |
+| **File Analysis & Export** | 📁 **Gemini multimodal input, QPdfWriter, python-docx, openpyxl, python-pptx** | Native PDF/image/audio understanding, `.docx` parsing, PDF/DOCX/XLSX/PPTX/MD/TXT export |
+| **Voice (STT / TTS)** | 🎙️ **QtMultimedia, QAudioSource, Gemini TTS** | Push-to-talk & wake-word capture with local VAD, Gemini transcription, streaming `gemini-2.5-flash-preview-tts` speech |
+| **Desktop Integration** | 🐤 **QSystemTrayIcon, frameless always-on-top window** | Tray notifications for reminders, desktop pet mode, drag & drop, clipboard paste |
+| **Testing** | 🧪 **pytest** | Offscreen Qt tests for routing, exporters, reminders, memory, voice helpers and settings |
 | **Web Search & Scraping** | 🔍 **DuckDuckGo, httpx, curl_cffi, Playwright, trafilatura** | Cascading web retrieval with Cloudflare bypass & text extraction |
-| **Database** | 🐘 **PostgreSQL 16** | Relational chat histories, user facts, indexes & triggers |
+| **Database** | 🐘 **PostgreSQL 16** | Chat histories, user facts, reminders, full-text GIN index & triggers |
 | **DB Drivers** | 🔌 **asyncpg** & **psycopg2** | High-performance asynchronous connection pooling & transactions |
 | **Logging** | 📋 **Custom Logging Core** | Terminal output, plain-text logs (`.log`), and JSONL audit files |
 | **DevOps** | 🐳 **Docker & Docker Compose** | One-command isolated PostgreSQL and application containerization |
@@ -211,39 +320,60 @@ kez-ai/
 │       ├── memory.txt          # 10-message conversational memory prompt
 │       ├── web_search.txt      # Web synthesis prompt with source citations
 │       ├── image_generation.txt # English enhancement prompt for Imagen 3
+│       ├── file_analysis.txt   # Attached file analysis prompt
+│       ├── file_export.txt     # Markdown document writer for exports (format-aware)
+│       ├── fact_extraction.txt # Long-term memory: durable user facts as JSON
+│       ├── reminder_parse.txt  # Complex reminder times -> ISO date-time
 │       └── lg.protect.txt      # Safety guardrails and persona constraints
 ├── 📁 app/
 │   ├── 📁 backend/             # Server & pipeline infrastructure
 │   │   ├── 📁 piplines/start/  # Core request pipelines
 │   │   │   ├── routing.py      # Dual-tier intent router (Rules + Gemini)
 │   │   │   ├── memory.py       # Context assembly & streaming memory (10 msgs + user_info)
-│   │   │   ├── image_gen.py    # Google Imagen 3 visual generation pipeline
+│   │   │   ├── image_gen.py    # Image generation & editing pipeline (Gemini / Imagen / Pollinations)
 │   │   │   ├── onboarding.py   # Interactive multi-step onboarding & profile extractor
+│   │   │   ├── file_processing.py # Multi-file analysis (streaming) & document export
+│   │   │   ├── facts.py        # Background long-term memory (user fact extraction)
+│   │   │   ├── reminders.py    # Reminder/timer parsing (local rules + LLM) & storage
+│   │   │   ├── voice.py        # Gemini speech-to-text & text-to-speech
 │   │   │   └── web_search.py   # Cascading search pipeline (DDG + httpx/curl/Playwright + trafilatura)
 │   │   └── 📁 utils/           # Shared helper modules
 │   │       ├── llm_fallback.py # Gemini fallback chain handler & stream generator
-│   │       ├── image_cache.py  # Image cache manager with 7-day TTL cleanup
+│   │       ├── image_cache.py  # Cache manager with 7-day TTL cleanup (images & audio)
+│   │       ├── file_tools.py   # Text/.docx extraction & PDF/DOCX/XLSX/PPTX/MD/TXT writers
+│   │       ├── markers.py      # [IMAGE:] / [FILE:] message marker parsing
 │   │       └── text_cleaner.py # Search query sanitization & keywords extraction
 │   └── 📁 frontend/            # PyQt6 Graphical Interface
 │       ├── 📁 components/      # Modular UI widgets
 │       │   ├── chat_area.py    # Scrollable chat bubbles & real-time streaming
 │       │   ├── chat_image_widget.py # Interactive photo card (Copy / Download)
-│       │   ├── input_bar.py    # Interactive input controls & action buttons (Meet Kez, Send)
-│       │   ├── sidebar.py      # Slide-out chat history drawer with context menu
+│       │   ├── chat_file_widget.py  # Exported document card (Open / Folder / Save As)
+│       │   ├── input_bar.py    # Input controls: multi-attachments, Ctrl+V paste, voice recording
+│       │   ├── sidebar.py      # Chat history drawer with context menu & full-text search
+│       │   ├── settings_dialog.py # Settings panel (General / Voice / Memory)
+│       │   ├── pet_window.py   # Always-on-top desktop pet with speech bubble
+│       │   ├── speech_queue.py # Ordered sentence-by-sentence TTS playback
+│       │   ├── wake_word.py    # "Эй, Kez" listener with local voice-activity detection
 │       │   └── video_companion.py # Seamless animated video player (idle & search loops)
 │       ├── 📁 cache/images/    # Front-end local image cache (auto-cleans > 7 days)
+│       ├── 📁 cache/audio/     # Voice recordings & TTS replies (auto-cleans > 7 days)
+│       ├── 📁 cache/files/     # Images pasted from the clipboard (auto-cleans > 7 days)
 │       ├── 📁 assets/          # Application media (MP4 animations, icons)
-│       ├── main_window.py      # Main application window setup & streaming orchestrator
-│       └── style.qss           # Modern dark-mode QSS stylesheet
+│       ├── main_window.py      # Main window: streaming, voice, reminders, tray, pet mode
+│       ├── style.qss           # Modern dark-mode QSS stylesheet
+│       └── style_light.qss     # Light theme overrides
 ├── 📁 core/                    # System utilities & loaders
 │   ├── 📁 constants/           # Dedicated modular constants
-│   │   └── image_const.py      # Imagen models, cache TTL, and image formats
-│   ├── const.py                # Regular expressions, fallback models & templates
+│   │   ├── image_const.py      # Imagen models, cache TTL, and image formats
+│   │   ├── const.py            # Regex intent rules, fallback models & prompt loading
+│   │   └── file_const.py       # Supported file types, export formats, TTS models & voices
+│   ├── settings.py             # User settings (~/.kez_ai/settings.json)
 │   ├── loader.py               # Database and environment initialization
 │   └── logger.py               # Structured console & JSONL logger
 ├── 📁 tech/                    # Database abstraction layer
 │   ├── basicDB.py              # Asyncpg connection pool wrapper
 │   └── database.py             # Schema definitions, migrations, and CRUD
+├── 📁 tests/                   # pytest suite (offscreen Qt)
 ├── 📁 logs/                    # Application and audit logs (.log / .jsonl)
 ├── docker-compose.yml          # Container configuration for PostgreSQL 16
 ├── Dockerfile                  # Application Docker container build file
@@ -314,7 +444,16 @@ DATABASE_URL=postgresql://kez_user:kez_password@localhost:5432/kez_db
 ```
 
 > [!NOTE]
-> Database tables (`history_chats`, `messages`, `user_info`), procedures, and indexes are **automatically verified and created** on first launch!
+> Database tables (`history_chats`, `messages`, `user_info`, `user_facts`, `reminders`), procedures, and indexes (including the full-text GIN index) are **automatically verified and created** on first launch!
+
+### 🎛️ In-app settings
+Everything else is configured in the app via **⚙️ Settings** and saved to `~/.kez_ai/settings.json`:
+
+| Tab | Options |
+|---|---|
+| **Общие** | Theme (dark / light), preferred Gemini model, export folder (default `~/Documents/Kez AI`) |
+| **Голос** | TTS voice, speak all replies, streaming speech, "Эй, Kez" + sensitivity threshold |
+| **Память** | Learn facts from conversations, review / forget remembered facts |
 
 ---
 
@@ -330,7 +469,30 @@ python main.py
 1. `main.py` starts the `qasync` event loop.
 2. The database connection pool is established and tables are verified.
 3. The dark-themed GUI appears with Kez playing the idle animation.
-4. You can start chatting immediately!
+4. Expired cached images, audio and pasted files (older than 7 days) are cleaned up.
+5. Reminder checks start (missed reminders fire right away), the tray icon appears, and "Эй, Kez" starts listening if enabled.
+6. You can start chatting immediately — by text, by voice 🎙️, or by attaching a file 📎!
+
+### 💡 Usage tips
+| Want to… | Do this |
+|---|---|
+| Ask about files | Click 📎 (several files at once), drag files onto the window or press `Ctrl+V` with a screenshot, then ask a question |
+| Export a document | *«Сохрани наш диалог в pdf»*, *«Сделай таблицу расходов в excel»*, *«Создай презентацию про птиц»*, *«Экспортируй в word»* |
+| Talk to Kez | Click 🎙️ to record and click again to send — or enable "Эй, Kez" in Settings and just say *«Эй, Kez, какая погода?»* |
+| Generate / edit an image | *«Нарисуй закат над морем»*, then *«Сделай этот рисунок в стиле аниме»* |
+| Set a reminder | *«Напомни через 20 минут проверить духовку»*, *«Поставь таймер на 5 минут»*, *«Мои напоминания»* |
+| Find an old conversation | Type in the 🔍 search field in the sidebar |
+| Keep Kez on screen | Click 🐤 — Kez moves to the corner of the screen; ⤢ or double-click brings the window back |
+
+---
+
+## 🧪 Testing
+
+```bash
+python -m pytest tests -q
+```
+
+Tests run Qt in offscreen mode and need neither a database nor an API key: they cover the intent rules, all six export formats, reminder time parsing, marker parsing, fact extraction helpers, wake-word matching and settings.
 
 ---
 
@@ -346,8 +508,20 @@ python main.py
 - [x] 🔍 Web search pipeline integration (DuckDuckGo + 3-tier cascade httpx/curl_cffi/Playwright).
 - [x] ⚡ Real-Time Streaming Pipeline (`generate_content_stream` token streaming in PyQt6).
 - [x] 🎨 Text-to-Image generation pipeline (Google Imagen 3 with prompt engineering, local cache, and right-click Copy/Download).
-- [ ] 📁 File analyzer and document exporter (PDF, Markdown, TXT).
-- [ ] 🎙️ Voice synthesis & speech recognition (TTS / STT integration).
+- [x] 📁 File analyzer and document exporter (PDF, Markdown, TXT).
+- [x] 🎙️ Voice synthesis & speech recognition (TTS / STT integration).
+- [x] ⚙️ Settings panel (theme, TTS voice & auto-speak, model choice, export folder).
+- [x] 🧠 Long-term memory: automatic extraction of new user facts from conversations.
+- [x] 🖱️ Drag & drop and clipboard paste for attachments; multiple files per message.
+- [x] ⏰ Reminders & timers with system tray notifications.
+- [x] 🐤 Floating "desktop pet" mode — Kez lives in a small always-on-top window.
+- [x] 👂 "Эй, Kez" wake word and sentence-by-sentence streaming speech.
+- [x] 🖌️ Image editing ("make this picture anime style").
+- [x] 📊 Excel / PowerPoint export and DOCX output.
+- [x] 🧪 pytest test suite.
+- [x] 🔎 Full-text search across chat history.
+- [ ] 🔁 Recurring reminders ("каждый день в 9:00") and snooze from the notification.
+- [ ] 🌐 Offline wake word (local keyword spotting) to avoid sending phrases to the cloud.
 
 ---
 
