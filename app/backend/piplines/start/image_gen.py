@@ -7,6 +7,7 @@ from typing import Any
 
 from google import genai
 from core.logger import logger
+from core.i18n import tr
 from core.constants.const import PROMPTS, PROMPTS_DIR
 from core.constants.image_const import (
     CACHE_IMAGES_DIR,
@@ -115,7 +116,7 @@ async def generate_image(raw_prompt: str, chat_id: int | None = None) -> ImageGe
         return ImageGenerationResult(
             success=False,
             original_prompt=raw_prompt,
-            error_message="Не удалось подключиться к сервису генерации изображений."
+            error_message=tr("image_gen.connect_failed")
         )
 
     enhanced_prompt: str = await enhance_image_prompt(raw_prompt)
@@ -193,7 +194,7 @@ async def generate_image(raw_prompt: str, chat_id: int | None = None) -> ImageGe
         success=False,
         original_prompt=raw_prompt,
         enhanced_prompt=enhanced_prompt,
-        error_message="К сожалению, не удалось создать изображение прямо сейчас. Попробуй изменить запрос!"
+        error_message=tr("image_gen.failed")
     )
 
 
@@ -219,7 +220,7 @@ async def edit_image(source_path: str, instruction: str, chat_id: int | None = N
         return ImageGenerationResult(
             success=False,
             original_prompt=instruction,
-            error_message="Не нашёл картинку для редактирования. Прикрепи изображение или сначала попроси меня что-нибудь нарисовать!"
+            error_message=tr("image_gen.edit_no_source")
         )
 
     try:
@@ -227,7 +228,7 @@ async def edit_image(source_path: str, instruction: str, chat_id: int | None = N
         client: genai.Client = _get_client()
     except Exception as e:
         logger.error(f"Не удалось инициализировать клиент для редактирования изображения: {e}")
-        return ImageGenerationResult(success=False, original_prompt=instruction, error_message="Сервис изображений недоступен.")
+        return ImageGenerationResult(success=False, original_prompt=instruction, error_message=tr("image_gen.unavailable"))
 
     chat_prefix: str = f"chat{chat_id}_" if chat_id else ""
     saved_path: Path = CACHE_IMAGES_DIR / f"{chat_prefix}edit_{int(time.time())}_{uuid.uuid4().hex[:6]}.png"
@@ -262,5 +263,5 @@ async def edit_image(source_path: str, instruction: str, chat_id: int | None = N
     return ImageGenerationResult(
         success=False,
         original_prompt=instruction,
-        error_message="Не получилось перерисовать картинку — модели редактирования сейчас недоступны. Попробуй позже!"
+        error_message=tr("image_gen.edit_failed")
     )

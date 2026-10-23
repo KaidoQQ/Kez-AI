@@ -4,6 +4,7 @@ from PyQt6.QtGui import QMouseEvent, QGuiApplication
 from PyQt6.QtMultimedia import QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFrame
+from core.i18n import tr
 
 PET_STYLE: str = """
     QFrame#pet_card {
@@ -82,9 +83,9 @@ class PetWindow(QWidget):
 
         controls = QHBoxLayout()
         controls.addStretch()
-        restore_btn = QPushButton("⤢")
+        self.restore_btn = restore_btn = QPushButton("⤢")
         restore_btn.setObjectName("pet_control")
-        restore_btn.setToolTip("Вернуться в полное окно")
+        restore_btn.setToolTip(tr("pet.restore_tooltip"))
         restore_btn.setFixedSize(24, 24)
         restore_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         restore_btn.clicked.connect(self.restore_requested.emit)
@@ -103,12 +104,17 @@ class PetWindow(QWidget):
 
         self.input = QLineEdit()
         self.input.setObjectName("pet_input")
-        self.input.setPlaceholderText("Спроси Kez...")
+        self.input.setPlaceholderText(tr("pet.placeholder"))
         self.input.returnPressed.connect(self._on_submit)
         card_layout.addWidget(self.input)
 
         outer.addWidget(card)
         self.adjustSize()
+
+    def retranslate_ui(self) -> None:
+        """Обновляет тексты после смены языка."""
+        self.restore_btn.setToolTip(tr("pet.restore_tooltip"))
+        self.input.setPlaceholderText(tr("pet.placeholder"))
 
     def show_pet(self) -> None:
         """Показывает питомца в правом нижнем углу основного экрана."""
@@ -143,7 +149,7 @@ class PetWindow(QWidget):
         text: str = self.input.text().strip()
         if text:
             self.input.clear()
-            self.show_bubble("Чирик... думаю! 🐦", timeout_ms=60000)
+            self.show_bubble(tr("pet.thinking"), timeout_ms=60000)
             self.message_submitted.emit(text)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:

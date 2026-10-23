@@ -215,6 +215,16 @@
       </ul>
     </td>
   </tr>
+  <tr>
+    <td colspan="2">
+      <h3>🌍 Russian & English (i18n)</h3>
+      <ul>
+        <li><b>First-Run Choice:</b> On the very first launch Kez asks for the language (pre-selected from the system locale); it can be changed any time in <b>Settings → General</b> — the interface switches instantly, no restart.</li>
+        <li><b>Locale Files:</b> All UI texts and Kez's fixed replies live in <code>core/locales/ru.json</code> / <code>en.json</code> and are read via <code>tr("key")</code> with a fallback to Russian.</li>
+        <li><b>Language-Aware AI:</b> Prompts get the default language through a <code>{DEFAULT_LANGUAGE}</code> placeholder, while Kez still answers in the language you actually write in; instant greetings reply in the language of your message.</li>
+      </ul>
+    </td>
+  </tr>
 </table>
 
 ---
@@ -352,6 +362,7 @@ kez-ai/
 │       │   ├── input_bar.py    # Input controls: multi-attachments, Ctrl+V paste, voice recording
 │       │   ├── sidebar.py      # Chat history drawer with context menu & full-text search
 │       │   ├── settings_dialog.py # Settings panel (General / Voice / Memory)
+│       │   ├── language_dialog.py # First-run language choice (RU / EN)
 │       │   ├── pet_window.py   # Always-on-top desktop pet with speech bubble
 │       │   ├── speech_queue.py # Ordered sentence-by-sentence TTS playback
 │       │   ├── wake_word.py    # "Эй, Kez" listener with local voice-activity detection
@@ -369,6 +380,8 @@ kez-ai/
 │   │   ├── const.py            # Regex intent rules, fallback models & prompt loading
 │   │   └── file_const.py       # Supported file types, export formats, TTS models & voices
 │   ├── settings.py             # User settings (~/.kez_ai/settings.json)
+│   ├── i18n.py                 # tr() translations, language detection, prompt localization
+│   ├── 📁 locales/             # ru.json / en.json UI texts and fixed replies
 │   ├── loader.py               # Database and environment initialization
 │   └── logger.py               # Structured console & JSONL logger
 ├── 📁 tech/                    # Database abstraction layer
@@ -452,7 +465,7 @@ Everything else is configured in the app via **⚙️ Settings** and saved to `~
 
 | Tab | Options |
 |---|---|
-| **Общие** | Theme (dark / light), preferred Gemini model, export folder (default `~/Documents/Kez AI`) |
+| **Общие** | Language (Русский / English), theme (dark / light), preferred Gemini model, export folder (default `~/Documents/Kez AI`) |
 | **Голос** | TTS voice, speak all replies, streaming speech, "Эй, Kez" + sensitivity threshold |
 | **Память** | Learn facts from conversations, review / forget remembered facts |
 
@@ -523,6 +536,7 @@ Tests run Qt in offscreen mode and need no API key: they cover the intent rules,
 - [x] 📊 Excel / PowerPoint export and DOCX output.
 - [x] 🧪 pytest test suite.
 - [x] 🔎 Full-text search across chat history.
+- [x] 🌍 Russian / English interface with first-run language choice.
 - [ ] 🔁 Recurring reminders ("каждый день в 9:00") and snooze from the notification.
 - [ ] 🌐 Offline wake word (local keyword spotting) to avoid sending phrases to the cloud.
 

@@ -19,5 +19,5 @@ Read the user's latest message and extract NEW, durable personal facts about the
 
 ## OUTPUT
 Strictly valid JSON, no Markdown fences, no comments:
-{"facts": ["short fact in Russian, third person", "..."]}
+{"facts": ["short fact in {DEFAULT_LANGUAGE}, third person", "..."]}
 Return {"facts": []} if there is nothing new.

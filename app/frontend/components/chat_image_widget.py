@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QColor
 from core.logger import logger
+from core.i18n import tr
 
 
 class ChatImageWidget(QWidget):
@@ -44,7 +45,7 @@ class ChatImageWidget(QWidget):
             self.image_label.setPixmap(scaled_pixmap)
             self.image_label.setFixedSize(scaled_pixmap.size())
         else:
-            self.image_label.setText("🖼 [Не удалось загрузить изображение]")
+            self.image_label.setText(tr("image.load_failed"))
             self.image_label.setStyleSheet("color: #EF4444; padding: 20px;")
 
         self.image_label.setStyleSheet("""
@@ -84,8 +85,8 @@ class ChatImageWidget(QWidget):
             }
         """)
 
-        copy_action: QAction = menu.addAction("📋 Скопировать")
-        save_action: QAction = menu.addAction("💾 Скачать...")
+        copy_action: QAction = menu.addAction(tr("image.copy"))
+        save_action: QAction = menu.addAction(tr("image.save"))
 
         action = menu.exec(self.mapToGlobal(event.pos()))
         if action == copy_action:
@@ -112,9 +113,9 @@ class ChatImageWidget(QWidget):
             default_name: str = Path(self.image_path).name or "kez_generated.png"
             file_path, _ = QFileDialog.getSaveFileName(
                 self,
-                "Сохранить сгенерированное изображение",
+                tr("image.save_dialog"),
                 default_name,
-                "Изображения (*.png *.jpg *.webp)"
+                tr("image.save_filter")
             )
             if file_path:
                 pixmap = QPixmap(self.image_path)
@@ -123,6 +124,6 @@ class ChatImageWidget(QWidget):
                     logger.info(f"Изображение успешно сохранено в {file_path}")
                 else:
                     logger.error(f"Не удалось сохранить изображение в {file_path}")
-                    QMessageBox.warning(self, "Ошибка сохранения", "Не удалось сохранить файл на диск.")
+                    QMessageBox.warning(self, tr("image.save_error_title"), tr("image.save_error"))
         except Exception as e:
             logger.error(f"Ошибка в диалоге сохранения изображения: {e}")

@@ -20,6 +20,7 @@ from core.constants.const import (
     QUICK_CONVERSATION_RESPONSES,
 )
 from Kez.prepare import _get_client
+from core.i18n import detect_language
 
 
 class IntentType(str, Enum):
@@ -52,7 +53,9 @@ def classify_intent_by_rules(text: str) -> RoutingResult | None:
     # Сначала проверяем быстрые разговорные фразы (привет, как дела, кто ты и т.д.)
     for pattern, responses in QUICK_CONVERSATION_RESPONSES:
         if pattern.search(cleaned_text):
-            chosen_reply: str = random.choice(responses)
+            # Отвечаем на языке сообщения: «привет» — по-русски, «hello» — по-английски
+            reply_language: str = detect_language(cleaned_text)
+            chosen_reply: str = random.choice(responses.get(reply_language) or responses["ru"])
             logger.info(f"Сработало мгновенное правило диалога Kez: '{cleaned_text}'")
             return RoutingResult(
                 intent=IntentType.CHAT,

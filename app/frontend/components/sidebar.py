@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
     QFrame, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem,
     QMenu, QInputDialog, QMessageBox, QLineEdit
 )
+from core.i18n import tr
 
 # Пометка элемента списка как результата поиска (у таких нет контекстного меню Rename/Delete)
 SEARCH_RESULT_ROLE: int = Qt.ItemDataRole.UserRole + 1
@@ -33,11 +34,11 @@ class SidebarWidget(QFrame):
         self.layout.setContentsMargins(15, 20, 15, 20)
 
         # Заголовок
-        self.sidebar_title = QLabel("Chat History")
+        self.sidebar_title = QLabel(tr("sidebar.title"))
         self.layout.addWidget(self.sidebar_title)
 
         # Кнопка создания нового чата
-        self.new_chat_btn = QPushButton("+ New Chat")
+        self.new_chat_btn = QPushButton(tr("sidebar.new_chat"))
         self.new_chat_btn.setObjectName("new_chat_btn")
         self.new_chat_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.new_chat_btn.clicked.connect(self.new_chat_requested.emit)
@@ -46,7 +47,7 @@ class SidebarWidget(QFrame):
         # Поиск по истории всех чатов (с задержкой 350 мс после ввода)
         self.search_field = QLineEdit()
         self.search_field.setObjectName("search_field")
-        self.search_field.setPlaceholderText("🔍 Поиск по чатам...")
+        self.search_field.setPlaceholderText(tr("sidebar.search_placeholder"))
         self.search_field.setClearButtonEnabled(True)
         self.search_field.setStyleSheet(
             "QLineEdit#search_field { background-color: rgba(23, 32, 51, 160); color: #F0EADA;"
@@ -97,13 +98,13 @@ class SidebarWidget(QFrame):
             }
         """)
 
-        rename_action = menu.addAction("✏️ Rename")
-        delete_action = menu.addAction("🗑️ Delete")
+        rename_action = menu.addAction(tr("sidebar.rename"))
+        delete_action = menu.addAction(tr("sidebar.delete"))
 
         action = menu.exec(self.chat_list_widget.mapToGlobal(pos))
         if action == rename_action:
             new_title, ok = QInputDialog.getText(
-                self, "Rename Chat", "Enter new chat title:", text=current_title
+                self, tr("sidebar.rename_title"), tr("sidebar.rename_label"), text=current_title
             )
             if ok and new_title.strip():
                 self.chat_rename_requested.emit(chat_id, new_title.strip())
@@ -111,8 +112,8 @@ class SidebarWidget(QFrame):
         elif action == delete_action:
             confirm = QMessageBox.question(
                 self,
-                "Delete Chat",
-                f"Are you sure you want to delete chat '{current_title}'?",
+                tr("sidebar.delete_title"),
+                tr("sidebar.delete_confirm", title=current_title),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )
@@ -154,13 +155,13 @@ class SidebarWidget(QFrame):
         self.chat_list_widget.clear()
 
         if not results:
-            empty_item = QListWidgetItem(f"Ничего не найдено по «{query}»")
+            empty_item = QListWidgetItem(tr("sidebar.no_results", query=query))
             empty_item.setFlags(Qt.ItemFlag.NoItemFlags)
             self.chat_list_widget.addItem(empty_item)
 
         for result in results:
             snippet: str = self._make_snippet(str(result.get("text_content", "")), query)
-            item = QListWidgetItem(f"{result.get('title', 'Чат')}\n{snippet}")
+            item = QListWidgetItem(f"{result.get('title') or tr('sidebar.default_chat')}\n{snippet}")
             item.setData(Qt.ItemDataRole.UserRole, int(result["chat_id"]))
             item.setData(SEARCH_RESULT_ROLE, True)
             item.setToolTip(str(result.get("text_content", ""))[:500])
@@ -177,6 +178,12 @@ class SidebarWidget(QFrame):
         start: int = max(0, position - 20) if position >= 0 else 0
         snippet: str = clean[start:start + SNIPPET_LENGTH]
         return ("…" if start > 0 else "") + snippet + ("…" if start + SNIPPET_LENGTH < len(clean) else "")
+
+    def retranslate_ui(self) -> None:
+        """Обновляет тексты после смены языка."""
+        self.sidebar_title.setText(tr("sidebar.title"))
+        self.new_chat_btn.setText(tr("sidebar.new_chat"))
+        self.search_field.setPlaceholderText(tr("sidebar.search_placeholder"))
 
     def get_current_chat_title(self) -> str:
         current_item = self.chat_list_widget.currentItem()

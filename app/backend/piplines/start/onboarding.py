@@ -2,27 +2,17 @@ import json
 import re
 from typing import Any
 from core.logger import logger
+from core.i18n import tr
 from core.loader import db
-from core.constants.const import PROMPTS, ONBOARDING_FINAL_GREETING
+from core.constants.const import PROMPTS
 from app.backend.utils.llm_fallback import generate_response_with_fallback
 
 
+# Тексты вопросов и подсказок — в core/locales (onboarding.q_<шаг> / onboarding.p_<шаг>)
 ONBOARDING_STEPS: list[dict[str, str]] = [
-    {
-        "step": "name",
-        "question": "Чирик! 🐦 Давай знакомиться поближе! Как тебя зовут, мой пернатый друг? Назови своё имя или никнейм, к которому ты привык!",
-        "placeholder": "Напиши своё имя...",
-    },
-    {
-        "step": "birth",
-        "question": "Приятно познакомиться! А сколько тебе лет или в каком году ты вылупился из скорлупы? 🐣 Мне важно знать, чтобы общаться с тобой на одной волне!",
-        "placeholder": "Укажи свой возраст или год рождения...",
-    },
-    {
-        "step": "interests",
-        "question": "Отлично! А чем ты любишь заниматься в свободное время? Какие у тебя интересы, хобби или работа? Расскажи в паре слов, я всё запомню в своём гнёздышке! ✨",
-        "placeholder": "Напиши о своих интересах и хобби...",
-    },
+    {"step": "name", "question": "onboarding.q_name", "placeholder": "onboarding.p_name"},
+    {"step": "birth", "question": "onboarding.q_birth", "placeholder": "onboarding.p_birth"},
+    {"step": "interests", "question": "onboarding.q_interests", "placeholder": "onboarding.p_interests"},
 ]
 
 
@@ -36,7 +26,7 @@ async def validate_and_extract_answer(step: str, user_text: str) -> tuple[bool, 
     """
     cleaned: str = user_text.strip()
     if not cleaned or len(cleaned) < 2:
-        return False, None, "Чирик! Ответ совсем короткий, перышко не разглядеть. Напиши, пожалуйста, чуть подробнее! 🐦"
+        return False, None, tr("onboarding.too_short")
 
     if step == "name":
         # Проверяем, что ответ похож на имя, а не на технический вопрос или мусор
@@ -64,7 +54,7 @@ async def validate_and_extract_answer(step: str, user_text: str) -> tuple[bool, 
             if len(cleaned.split()) <= 4:
                 return True, cleaned, ""
 
-        return False, None, "Чирик? 🐦 Я не совсем разобрал твоё имя. Напиши просто, как к тебе обращаться!"
+        return False, None, tr("onboarding.bad_name")
 
     elif step == "birth":
         # Проверяем возраст / год рождения
@@ -100,14 +90,14 @@ async def validate_and_extract_answer(step: str, user_text: str) -> tuple[bool, 
         except Exception as e:
             logger.error(f"Ошибка LLM валидации возраста: {e}")
 
-        return False, None, "Чирик! 🐣 Напиши, пожалуйста, свой возраст цифрой или год рождения, чтобы я сориентировался!"
+        return False, None, tr("onboarding.bad_birth")
 
     elif step == "interests":
         if len(cleaned) < 3:
-            return False, None, "Чирик! Расскажи хотя бы пару слов о своих увлечениях или работе! ✨"
+            return False, None, tr("onboarding.bad_interests")
         return True, cleaned, ""
 
-    return False, None, "Неизвестный шаг онбординга."
+    return False, None, tr("onboarding.unknown_step")
 
 
 class OnboardingManager:
@@ -130,13 +120,13 @@ class OnboardingManager:
         self.current_step_index = 0
         self.collected_data = {"full_name": "", "birth": 0, "interests": ""}
         logger.info("Онбординг Kez запущен.")
-        return ONBOARDING_STEPS[0]["question"]
+        return tr(ONBOARDING_STEPS[0]["question"])
 
     def get_current_placeholder(self) -> str:
         """Возвращает плейсхолдер для текущего вопроса."""
         if 0 <= self.current_step_index < len(ONBOARDING_STEPS):
-            return ONBOARDING_STEPS[self.current_step_index]["placeholder"]
-        return "Type your message..."
+            return tr(ONBOARDING_STEPS[self.current_step_index]["placeholder"])
+        return tr("main.input_placeholder")
 
     async def process_user_input(self, user_text: str) -> tuple[str, bool]:
         """
@@ -168,7 +158,7 @@ class OnboardingManager:
 
         # Если остались шаги — переходим к следующему
         if self.current_step_index < len(ONBOARDING_STEPS):
-            next_question: str = ONBOARDING_STEPS[self.current_step_index]["question"]
+            next_question: str = tr(ONBOARDING_STEPS[self.current_step_index]["question"])
             return next_question, False
 
         # Все шаги пройдены — сохраняем в БД
@@ -183,7 +173,8 @@ class OnboardingManager:
         except Exception as e:
             logger.error(f"Не удалось сохранить завершенный профиль онбординга: {e}")
 
-        final_greeting: str = ONBOARDING_FINAL_GREETING.format(
+        final_greeting: str = tr(
+            "onboarding.final",
             full_name=full_name,
             birth_val=birth_val,
             interests=interests

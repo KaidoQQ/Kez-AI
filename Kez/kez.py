@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from google import genai
 from core.logger import logger
+from core.i18n import tr
 from core.constants.const import MODELS_FALLBACK, PROMPTS, IMAGE_EDIT_VERBS_PATTERN
 from core.loader import db
 from Kez.prepare import _get_client
@@ -67,14 +68,14 @@ class KezAgent:
         task.add_done_callback(self._background_tasks.discard)
 
     async def _edit_image_events(self, source_path: str, instruction: str, chat_id: int) -> AsyncGenerator[StreamEvent, None]:
-        yield StreamEvent(event_type="token", text="🖌️ Чирик! Беру кисточку и перерисовываю... ✨\n")
+        yield StreamEvent(event_type="token", text=tr("agent.editing"))
         edit_res: ImageGenerationResult = await edit_image(source_path, instruction, chat_id)
         if edit_res.success and edit_res.image_path:
             yield StreamEvent(
                 event_type="image",
                 image_path=edit_res.image_path,
                 prompt=instruction,
-                text="Готово! Вот обновлённая версия. 🐦🎨"
+                text=tr("agent.edit_ready")
             )
         else:
             yield StreamEvent(event_type="token", text=f"\n❌ {edit_res.error_message}")
@@ -140,7 +141,7 @@ class KezAgent:
                 case IntentType.PHOTO:
                     image_prompt: str = str(decision.extracted_data.get("prompt", user_text))
                     logger.info(f"Интент PHOTO в стриме: промпт '{image_prompt}'")
-                    yield StreamEvent(event_type="token", text="🎨 Чирик! Настраиваю палитру и рисую... Это займет пару секунд! ✨\n")
+                    yield StreamEvent(event_type="token", text=tr("agent.drawing"))
 
                     img_res: ImageGenerationResult = await generate_image(image_prompt, chat_id)
                     if img_res.success and img_res.image_path:
@@ -148,10 +149,10 @@ class KezAgent:
                             event_type="image",
                             image_path=img_res.image_path,
                             prompt=img_res.original_prompt,
-                            text=f"Вот твой рисунок по запросу: «{img_res.original_prompt}»! 🐦🎨"
+                            text=tr("agent.image_ready", prompt=img_res.original_prompt)
                         )
                     else:
-                        err_text: str = img_res.error_message or "Не удалось нарисовать картинку... Попробуй ещё разок!"
+                        err_text: str = img_res.error_message or tr("agent.image_failed")
                         yield StreamEvent(event_type="token", text=f"\n❌ {err_text}")
 
                 case IntentType.WEB_SEARCH:
@@ -166,17 +167,17 @@ class KezAgent:
                     if is_read_request(raw_req):
                         yield StreamEvent(
                             event_type="token",
-                            text="📎 Чирик! Прикрепи файл через кнопку со скрепкой слева от поля ввода и напиши, что с ним сделать — я прочитаю! 🐦"
+                            text=tr("agent.attach_hint")
                         )
                         return
 
-                    yield StreamEvent(event_type="token", text="📝 Чирик! Собираю документ по пёрышку... ✨\n")
+                    yield StreamEvent(event_type="token", text=tr("agent.exporting"))
                     export_res: FileExportResult = await export_file_from_request(raw_req, chat_id)
                     if export_res.success:
                         yield StreamEvent(
                             event_type="file",
                             file_path=export_res.file_path,
-                            text=f"Готово! Документ ({export_res.export_format.upper()}) сохранён. 🐦📄"
+                            text=tr("agent.export_ready", format=export_res.export_format.upper())
                         )
                     else:
                         yield StreamEvent(event_type="token", text=f"\n❌ {export_res.error_message}")
@@ -192,7 +193,7 @@ class KezAgent:
                     if not last_image:
                         yield StreamEvent(
                             event_type="token",
-                            text="Хм, в этом чате ещё нет картинок. 🐦 Попроси меня что-нибудь нарисовать или прикрепи изображение скрепкой!"
+                            text=tr("agent.no_images")
                         )
                         return
                     async for event in self._edit_image_events(last_image, instruction, chat_id):
@@ -205,7 +206,7 @@ class KezAgent:
 
         except Exception as e:
             logger.error(f"Ошибка в generate_reply_stream KezAgent: {e}")
-            yield StreamEvent(event_type="error", text="Ой, у меня что-то пошло не так при обработке сообщения... Чирик! 🐦")
+            yield StreamEvent(event_type="error", text=tr("main.generic_error"))
 
     async def generate_reply(self, user_text: str, chat_id: int) -> str:
         """

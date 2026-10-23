@@ -18,6 +18,7 @@ _ORIGINAL_MODELS: list[str] = list(MODELS_FALLBACK)
 @dataclass
 class KezSettings:
     """Набор пользовательских настроек приложения."""
+    language: str = ""                      # ru | en ("" — ещё не выбран, спросить при первом запуске)
     theme: str = "dark"                     # dark | light
     tts_voice: str = "Puck"                 # голос Gemini TTS
     auto_speak: bool = False                # озвучивать все ответы, а не только голосовые

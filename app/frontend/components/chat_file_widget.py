@@ -5,6 +5,7 @@ from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QFileDialog, QMessageBox
 from core.logger import logger
+from core.i18n import tr
 
 FILE_ICONS: dict[str, str] = {".pdf": "📕", ".md": "📝", ".txt": "📄"}
 
@@ -55,16 +56,16 @@ class ChatFileWidget(QWidget):
         name_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(name_label)
 
-        dir_label = QLabel(str(path.parent) if exists else "Файл был перемещён или удалён")
+        dir_label = QLabel(str(path.parent) if exists else tr("file_card.moved"))
         dir_label.setObjectName("file_dir_label")
         layout.addWidget(dir_label)
 
         buttons_layout = QHBoxLayout()
         buttons_layout.setSpacing(8)
         for title, handler in (
-            ("Открыть", self._open_file),
-            ("Папка", self._open_folder),
-            ("Сохранить как...", self._save_as),
+            (tr("file_card.open"), self._open_file),
+            (tr("file_card.folder"), self._open_folder),
+            (tr("file_card.save_as"), self._save_as),
         ):
             button = QPushButton(title)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -84,7 +85,7 @@ class ChatFileWidget(QWidget):
         """Копирует файл в выбранную пользователем папку."""
         suffix: str = Path(self.file_path).suffix
         target, _ = QFileDialog.getSaveFileName(
-            self, "Сохранить документ", os.path.basename(self.file_path), f"*{suffix}"
+            self, tr("file_card.save_dialog"), os.path.basename(self.file_path), f"*{suffix}"
         )
         if not target:
             return
@@ -93,4 +94,4 @@ class ChatFileWidget(QWidget):
             logger.info(f"Документ сохранён пользователем в {target}")
         except Exception as e:
             logger.error(f"Не удалось сохранить документ в {target}: {e}")
-            QMessageBox.warning(self, "Ошибка", f"Не удалось сохранить файл:\n{e}")
+            QMessageBox.warning(self, tr("file_card.error_title"), tr("file_card.error", error=e))

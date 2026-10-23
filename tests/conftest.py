@@ -16,6 +16,13 @@ def qapp():
     return QApplication.instance() or QApplication([])
 
 
+@pytest.fixture(autouse=True)
+def russian_language(monkeypatch):
+    """Тесты не зависят от языка в ~/.kez_ai/settings.json: по умолчанию — русский."""
+    from core import settings as settings_module
+    monkeypatch.setattr(settings_module.settings, "language", "ru")
+
+
 @pytest.fixture
 def export_dir(tmp_path, monkeypatch):
     """Перенаправляет папку экспорта во временную директорию."""
