@@ -7,6 +7,7 @@ from google.genai import types
 
 from core.loader import db
 from core.logger import logger
+from core.i18n import tr
 from core.constants.const import PROMPTS
 from core.constants.file_const import (
     NATIVE_MIME_TYPES,
@@ -24,7 +25,6 @@ READ_FILE_PATTERN: re.Pattern = re.compile(
 EXPORT_FILE_PATTERN: re.Pattern = re.compile(
     r"\b(сохрани|экспортируй|запиши|выгрузи|сделай|создай|save|export|create|write)\b", re.IGNORECASE
 )
-DEFAULT_ANALYSIS_REQUEST: str = "Расскажи, что в этом файле, и выдели главное."
 
 
 @dataclass
@@ -66,7 +66,7 @@ def prepare_file_contents(paths: list[Path]) -> tuple[list[Any], list[str], list
     for path in paths:
         suffix: str = path.suffix.lower()
         if not path.is_file():
-            problems.append(f"«{path.name}» — файл не найден")
+            problems.append(tr("files.not_found", name=path.name))
             continue
         try:
             file_text: str | None = extract_text(path)
@@ -74,18 +74,18 @@ def prepare_file_contents(paths: list[Path]) -> tuple[list[Any], list[str], list
                 if file_text.strip():
                     text_blocks.append(f"=== {path.name} ===\n{file_text}")
                 else:
-                    problems.append(f"«{path.name}» — файл пустой")
+                    problems.append(tr("files.empty", name=path.name))
             elif suffix in NATIVE_MIME_TYPES:
                 if path.stat().st_size > MAX_INLINE_FILE_BYTES:
-                    problems.append(f"«{path.name}» — больше {MAX_INLINE_FILE_BYTES // (1024 * 1024)} МБ")
+                    problems.append(tr("files.too_big", name=path.name, limit=MAX_INLINE_FILE_BYTES // (1024 * 1024)))
                     continue
                 binary_parts.append(types.Part.from_bytes(data=path.read_bytes(), mime_type=NATIVE_MIME_TYPES[suffix]))
-                text_blocks.append(f"=== {path.name} === (приложен отдельно)")
+                text_blocks.append(tr("files.attached_separately", name=path.name))
             else:
-                problems.append(f"«{path.name}» — формат {suffix or '?'} не поддерживается")
+                problems.append(tr("files.unsupported", name=path.name, suffix=suffix or "?"))
         except Exception as e:
             logger.error(f"Ошибка при чтении вложения {path}: {e}")
-            problems.append(f"«{path.name}» — не удалось прочитать ({e})")
+            problems.append(tr("files.read_failed", name=path.name, error=e))
 
     return binary_parts, text_blocks, problems
 
@@ -100,16 +100,13 @@ async def analyze_file_stream(file_paths: list[str] | str, user_request: str):
     if isinstance(file_paths, str):
         file_paths = [file_paths]
     paths: list[Path] = [Path(p) for p in file_paths]
-    request_text: str = user_request.strip() or DEFAULT_ANALYSIS_REQUEST
+    request_text: str = user_request.strip() or tr("files.default_request")
 
     binary_parts, text_blocks, problems = prepare_file_contents(paths)
     if problems:
         yield "⚠️ " + "; ".join(problems) + "\n\n"
     if not text_blocks:
-        yield (
-            "Чирик... тут мне нечего прочитать. 🐦\n"
-            "Поддерживаются текстовые файлы и код, .docx, PDF, изображения и аудио."
-        )
+        yield tr("files.nothing_to_read")
         return
 
     file_names: str = ", ".join(p.name for p in paths)
@@ -123,7 +120,7 @@ async def analyze_file_stream(file_paths: list[str] | str, user_request: str):
         yield chunk
 
     if not got_any_chunk:
-        yield "Ой, не получилось разобрать файл — все модели сейчас недоступны. Попробуй чуть позже! 🐦"
+        yield tr("files.models_down")
 
 
 async def export_file_from_request(user_text: str, chat_id: int) -> FileExportResult:
@@ -159,7 +156,7 @@ async def export_file_from_request(user_text: str, chat_id: int) -> FileExportRe
     document_text = re.sub(r"^```(?:markdown|md)?\s*|\s*```$", "", document_text.strip()).strip()
     if not document_text:
         logger.warning("LLM не сгенерировала документ, экспортируем историю диалога как есть.")
-        document_text = f"# Диалог с Kez\n\n{history_text}"
+        document_text = f"{tr('files.history_title')}\n\n{history_text}"
 
     try:
         saved_path: Path = export_document(document_text, export_format)
@@ -169,5 +166,5 @@ async def export_file_from_request(user_text: str, chat_id: int) -> FileExportRe
         return FileExportResult(
             success=False,
             export_format=export_format,
-            error_message="Не удалось сохранить файл... Перышки дрогнули. Попробуй ещё раз!"
+            error_message=tr("files.save_failed")
         )

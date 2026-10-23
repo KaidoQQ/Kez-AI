@@ -26,6 +26,7 @@ except ImportError:
 import trafilatura
 
 from core.logger import logger
+from core.i18n import tr
 from core.constants.const import PROMPTS, PROMPTS_DIR
 from app.backend.utils.llm_fallback import generate_response_with_fallback
 from app.backend.utils.text_cleaner import sanitize_search_query, extract_keywords
@@ -327,7 +328,7 @@ def build_web_search_context(pages: list[ParsedPage]) -> tuple[str, str]:
     :return: Кортеж (текст контекста, список источников с доменами).
     """
     if not pages:
-        return "Никаких данных не удалось собрать из сети.", "Нет доступных ссылок."
+        return tr("search.no_data"), tr("search.no_links")
 
     context_blocks: list[str] = []
     url_lines: list[str] = []
@@ -390,7 +391,7 @@ async def web_search(query: str) -> str:
     try:
         sanitized_query: str = sanitize_search_query(query)
         if not sanitized_query:
-            return "Чирик? Ты забыл сказать, что именно нужно найти в сети! 🐦"
+            return tr("search.empty_query")
 
         keywords: list[str] = extract_keywords(sanitized_query)
         logger.info(f"Запуск веб-поиска: query='{sanitized_query}', keywords={keywords}")
@@ -399,8 +400,7 @@ async def web_search(query: str) -> str:
         search_results = await search_duckduckgo(sanitized_query, max_results=5)
         if not search_results:
             return (
-                f"Чирик-чирик! 🐦 Я облетел весь интернет по запросу «{sanitized_query}», "
-                "но ничего толкового не нашёл. Попробуй уточнить запрос!"
+                tr("search.nothing_found", query=sanitized_query)
             )
 
         # Параллельный парсинг контента
@@ -432,10 +432,9 @@ async def web_search(query: str) -> str:
 
         # Аварийный ответ если LLM не ответила
         return (
-            f"Чирик! Я нашёл информацию в сети по запросу «{sanitized_query}», "
-            f"но мои мыслительные крылья немного устали. Вот найденные источники:\n\n{source_urls}"
+            tr("search.llm_failed", query=sanitized_query, sources=source_urls)
         )
 
     except Exception as e:
         logger.error(f"Критическая ошибка в пайплайне веб-поиска: {e}")
-        return "Фррр... 🐦 Мой компас сбился во время поиска в интернете. Попробуем ещё разок?"
+        return tr("search.error")

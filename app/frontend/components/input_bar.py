@@ -5,13 +5,17 @@ from PyQt6.QtGui import QIcon, QKeyEvent, QKeySequence, QGuiApplication, QImage
 from PyQt6.QtMultimedia import QMediaCaptureSession, QAudioInput, QMediaRecorder, QMediaFormat
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QFileDialog
 from core.logger import logger
+from core.i18n import tr
 from core.constants.file_const import CACHE_AUDIO_DIR, CACHE_FILES_DIR, MAX_ATTACHMENTS
 
-ATTACH_FILE_FILTER: str = (
-    "Поддерживаемые файлы (*.txt *.md *.csv *.json *.xml *.yaml *.yml *.log *.html *.py *.js *.ts "
-    "*.java *.c *.cpp *.cs *.go *.rs *.sql *.docx *.pdf *.png *.jpg *.jpeg *.webp *.gif *.mp3 *.wav *.m4a *.ogg);;"
-    "Все файлы (*)"
+ATTACH_FILE_PATTERNS: str = (
+    "*.txt *.md *.csv *.json *.xml *.yaml *.yml *.log *.html *.py *.js *.ts "
+    "*.java *.c *.cpp *.cs *.go *.rs *.sql *.docx *.pdf *.png *.jpg *.jpeg *.webp *.gif *.mp3 *.wav *.m4a *.ogg"
 )
+
+
+def attach_file_filter() -> str:
+    return f"{tr('input.attach_filter_supported')} ({ATTACH_FILE_PATTERNS});;{tr('input.attach_filter_all')} (*)"
 
 
 class InputBarWidget(QWidget):
@@ -49,7 +53,7 @@ class InputBarWidget(QWidget):
         self.banner_layout.setContentsMargins(0, 0, 0, 0)
         self.banner_layout.addStretch()
 
-        self.meet_btn = QPushButton("Get to know Kez ✨")
+        self.meet_btn = QPushButton(tr("input.meet_kez"))
         self.meet_btn.setObjectName("meet_kez_btn")
         self.meet_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.meet_btn.setFixedHeight(34)
@@ -71,7 +75,7 @@ class InputBarWidget(QWidget):
         self.attachment_remove_btn = QPushButton("✕")
         self.attachment_remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.attachment_remove_btn.setFixedSize(22, 22)
-        self.attachment_remove_btn.setToolTip("Убрать вложение")
+        self.attachment_remove_btn.setToolTip(tr("input.remove_attachment"))
         self.attachment_remove_btn.setStyleSheet(
             "QPushButton { background: transparent; color: #F0EADA; border: none; font-weight: bold; }"
             "QPushButton:hover { color: #EF4444; }"
@@ -94,14 +98,14 @@ class InputBarWidget(QWidget):
         self.attach_btn.setObjectName("action_btn")
         self.attach_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.attach_btn.setFixedSize(45, 45)
-        self.attach_btn.setToolTip("Прикрепить файл")
+        self.attach_btn.setToolTip(tr("input.attach_tooltip"))
         self.attach_btn.clicked.connect(self._on_attach_clicked)
         self.controls_layout.addWidget(self.attach_btn)
 
         # Поле ввода текста
         self.input_field = QLineEdit()
         self.input_field.setObjectName("input_field")
-        self.input_field.setPlaceholderText("Message Kez...")
+        self.input_field.setPlaceholderText(tr("main.input_placeholder"))
         self.input_field.setFixedHeight(45)
         self.input_field.returnPressed.connect(self._on_submit)
         self.input_field.installEventFilter(self)
@@ -114,12 +118,12 @@ class InputBarWidget(QWidget):
         self.voice_btn.setObjectName("action_btn")
         self.voice_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.voice_btn.setFixedSize(45, 45)
-        self.voice_btn.setToolTip("Голосовое сообщение")
+        self.voice_btn.setToolTip(tr("input.voice_tooltip"))
         self.voice_btn.clicked.connect(self._on_voice_clicked)
         self.controls_layout.addWidget(self.voice_btn)
 
         # Кнопка отправки
-        self.send_btn = QPushButton("Send")
+        self.send_btn = QPushButton(tr("input.send"))
         self.send_btn.setObjectName("send_btn")
         self.send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.send_btn.setFixedHeight(45)
@@ -184,7 +188,7 @@ class InputBarWidget(QWidget):
     # ---------- Вложения ----------
 
     def _on_attach_clicked(self) -> None:
-        file_paths, _ = QFileDialog.getOpenFileNames(self, "Прикрепить файлы", "", ATTACH_FILE_FILTER)
+        file_paths, _ = QFileDialog.getOpenFileNames(self, tr("input.attach_dialog"), "", attach_file_filter())
         if file_paths:
             self.add_attachments(file_paths)
 
@@ -296,8 +300,8 @@ class InputBarWidget(QWidget):
             self._is_recording = True
             self.recording_state_changed.emit(True)
             self.voice_btn.setStyleSheet("QPushButton#action_btn { background: rgba(185, 28, 28, 220); }")
-            self.voice_btn.setToolTip("Остановить запись")
-            self.input_field.setPlaceholderText("🎙️ Слушаю... нажми на микрофон ещё раз, чтобы отправить")
+            self.voice_btn.setToolTip(tr("input.voice_stop_tooltip"))
+            self.input_field.setPlaceholderText(tr("input.listening"))
             logger.info(f"Начата запись голоса: {output_path}")
         except Exception as e:
             logger.error(f"Не удалось начать запись голоса: {e}")
@@ -314,8 +318,8 @@ class InputBarWidget(QWidget):
             self.recording_state_changed.emit(False)
         self._is_recording = False
         self.voice_btn.setStyleSheet("")
-        self.voice_btn.setToolTip("Голосовое сообщение")
-        self.input_field.setPlaceholderText("Message Kez...")
+        self.voice_btn.setToolTip(tr("input.voice_tooltip"))
+        self.input_field.setPlaceholderText(tr("main.input_placeholder"))
 
     def _on_recorder_state_changed(self, state: QMediaRecorder.RecorderState) -> None:
         if state == QMediaRecorder.RecorderState.StoppedState and self._recorder is not None:
@@ -327,6 +331,19 @@ class InputBarWidget(QWidget):
     def _on_recorder_error(self, error: QMediaRecorder.Error, error_string: str) -> None:
         logger.error(f"Ошибка записи голоса ({error}): {error_string}")
         self._reset_voice_button()
+
+    def retranslate_ui(self) -> None:
+        """Обновляет тексты после смены языка."""
+        self.meet_btn.setText(tr("input.meet_kez"))
+        self.attach_btn.setToolTip(tr("input.attach_tooltip"))
+        self.attachment_remove_btn.setToolTip(tr("input.remove_attachment"))
+        self.send_btn.setText(tr("input.send"))
+        if self._is_recording:
+            self.voice_btn.setToolTip(tr("input.voice_stop_tooltip"))
+            self.input_field.setPlaceholderText(tr("input.listening"))
+        else:
+            self.voice_btn.setToolTip(tr("input.voice_tooltip"))
+            self.input_field.setPlaceholderText(tr("main.input_placeholder"))
 
     def set_placeholder(self, text: str) -> None:
         """Устанавливает подсказку в поле ввода."""

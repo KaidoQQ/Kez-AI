@@ -14,6 +14,7 @@ from core.loader import db
 from core.logger import logger
 from core import settings as settings_module
 from core.settings import KezSettings, save_settings
+from core.i18n import tr
 from app.backend.piplines.start.onboarding import OnboardingManager
 from app.backend.piplines.start.voice import transcribe_audio
 from app.backend.utils.markers import split_message_markers
@@ -52,7 +53,7 @@ class KezMainWindow(QMainWindow):
 
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Kez AI Companion")
+        self.setWindowTitle(tr("main.title"))
         self.resize(1100, 750)
         self.setAcceptDrops(True)
 
@@ -127,7 +128,7 @@ class KezMainWindow(QMainWindow):
 
         self.pet_btn = QPushButton("🐤")
         self.pet_btn.setObjectName("pet_btn")
-        self.pet_btn.setToolTip("Режим питомца: Kez в углу экрана поверх окон")
+        self.pet_btn.setToolTip(tr("main.pet_tooltip"))
         self.pet_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.pet_btn.setFixedSize(40, 40)
         self.pet_btn.clicked.connect(self.enter_pet_mode)
@@ -137,7 +138,7 @@ class KezMainWindow(QMainWindow):
         self.settings_btn.setIcon(QIcon(os.path.join(self.icons_dir, "settings.png")))
         self.settings_btn.setIconSize(QSize(38, 38))
         self.settings_btn.setObjectName("settings_btn")
-        self.settings_btn.setToolTip("Настройки")
+        self.settings_btn.setToolTip(tr("main.settings_tooltip"))
         self.settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.settings_btn.setFixedSize(40, 40)
         self.settings_btn.clicked.connect(self.open_settings)
@@ -172,18 +173,18 @@ class KezMainWindow(QMainWindow):
 
         # Иконка в системном трее: уведомления напоминаний + быстрые действия
         self.tray_icon = QSystemTrayIcon(QIcon(os.path.join(self.icons_dir, "chats.png")), self)
-        self.tray_icon.setToolTip("Kez AI Companion")
+        self.tray_icon.setToolTip(tr("tray.tooltip"))
         tray_menu = QMenu(self)
-        open_action = QAction("Открыть Kez", self)
-        open_action.triggered.connect(self.exit_pet_mode)
-        pet_action = QAction("Режим питомца 🐤", self)
-        pet_action.triggered.connect(self.enter_pet_mode)
-        quit_action = QAction("Выход", self)
-        quit_action.triggered.connect(QApplication.quit)
-        tray_menu.addAction(open_action)
-        tray_menu.addAction(pet_action)
+        self.tray_open_action = QAction(tr("tray.open"), self)
+        self.tray_open_action.triggered.connect(self.exit_pet_mode)
+        self.tray_pet_action = QAction(tr("tray.pet"), self)
+        self.tray_pet_action.triggered.connect(self.enter_pet_mode)
+        self.tray_quit_action = QAction(tr("tray.quit"), self)
+        self.tray_quit_action.triggered.connect(QApplication.quit)
+        tray_menu.addAction(self.tray_open_action)
+        tray_menu.addAction(self.tray_pet_action)
         tray_menu.addSeparator()
-        tray_menu.addAction(quit_action)
+        tray_menu.addAction(self.tray_quit_action)
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.activated.connect(self._on_tray_activated)
         if QSystemTrayIcon.isSystemTrayAvailable():
@@ -248,8 +249,11 @@ class KezMainWindow(QMainWindow):
         dialog.open()
 
     def apply_new_settings(self, new_settings: KezSettings) -> None:
+        language_changed: bool = new_settings.language != settings_module.settings.language
         save_settings(new_settings)
         apply_theme(new_settings.theme)
+        if language_changed:
+            self.retranslate_ui()
 
         self.wake_listener.threshold = new_settings.wake_word_threshold
         if new_settings.wake_word_enabled and not self.wake_listener.is_running:
@@ -257,6 +261,22 @@ class KezMainWindow(QMainWindow):
         elif not new_settings.wake_word_enabled and self.wake_listener.is_running:
             self.wake_listener.stop()
         logger.info(f"Настройки применены: {new_settings}")
+
+    def retranslate_ui(self) -> None:
+        """Переводит постоянные элементы интерфейса на новый язык (история чата остаётся как была)."""
+        self.setWindowTitle(tr("main.title"))
+        self.pet_btn.setToolTip(tr("main.pet_tooltip"))
+        self.settings_btn.setToolTip(tr("main.settings_tooltip"))
+        self.tray_icon.setToolTip(tr("tray.tooltip"))
+        self.tray_open_action.setText(tr("tray.open"))
+        self.tray_pet_action.setText(tr("tray.pet"))
+        self.tray_quit_action.setText(tr("tray.quit"))
+        self.sidebar.retranslate_ui()
+        self.input_bar.retranslate_ui()
+        self.pet_window.retranslate_ui()
+        if self.onboarding.is_active:
+            self.input_bar.set_placeholder(self.onboarding.get_current_placeholder())
+        logger.info(f"Интерфейс переведён на язык: {settings_module.settings.language}")
 
     @asyncSlot(int)
     async def handle_fact_delete(self, fact_id: int) -> None:
@@ -298,7 +318,7 @@ class KezMainWindow(QMainWindow):
         """Запускает процесс интерактивного знакомства."""
         try:
             if self.current_chat_id is None:
-                self.current_chat_id = await db.create_chat("Знакомство с Kez")
+                self.current_chat_id = await db.create_chat(tr("main.onboarding_chat_title"))
                 await self.load_chats_list()
 
             first_question: str = self.onboarding.start_onboarding()
@@ -338,7 +358,7 @@ class KezMainWindow(QMainWindow):
         self.current_chat_id = None
         self.chat_area.clear_messages()
         await self.load_chats_list()
-        self.input_bar.set_placeholder("Message Kez...")
+        self.input_bar.set_placeholder(tr("main.input_placeholder"))
         self.input_bar.set_focus()
         logger.info("Открыт пустой экран для нового чата.")
 
@@ -431,7 +451,7 @@ class KezMainWindow(QMainWindow):
             self.chat_area.hide_typing_indicator()
 
         if not text:
-            self.chat_area.add_message("Чирик? Я не расслышал... 🎙️ Попробуй сказать ещё раз, чуть ближе к микрофону!", "ai")
+            self.chat_area.add_message(tr("main.voice_not_heard"), "ai")
             return
 
         await self.process_message(text, speak_reply=True)
@@ -460,7 +480,7 @@ class KezMainWindow(QMainWindow):
         if not command:
             # Только «Эй, Kez» — ждём команду обычной записью
             if self.pet_window.isVisible():
-                self.pet_window.show_bubble("Да-да? Слушаю! 🎙️")
+                self.pet_window.show_bubble(tr("main.wake_listening"))
             self.input_bar.start_recording()
             QTimer.singleShot(6000, self.input_bar.stop_recording)
             return
@@ -474,12 +494,12 @@ class KezMainWindow(QMainWindow):
     @staticmethod
     def _bubble_text(reply: str) -> str:
         parts: list[str] = [value for kind, value in split_message_markers(reply) if kind == "text"]
-        return " ".join(parts).strip() or "Готово! Открой окно, чтобы посмотреть. 🐦"
+        return " ".join(parts).strip() or tr("main.bubble_done")
 
     @asyncSlot(str)
     async def handle_pet_message(self, text: str) -> None:
         reply: str = await self.process_message(text)
-        self.pet_window.show_bubble(self._bubble_text(reply) if reply else "Ой, что-то пошло не так... 🐦")
+        self.pet_window.show_bubble(self._bubble_text(reply) if reply else tr("main.bubble_error"))
 
     # ---------- Напоминания ----------
 
@@ -492,12 +512,12 @@ class KezMainWindow(QMainWindow):
         try:
             for reminder in await db.get_due_reminders(datetime.now()):
                 await db.mark_reminder_done(int(reminder["id"]))
-                text: str = f"⏰ Чирик-чирик! Напоминаю: **{reminder['text_content']}**"
-                plain_text: str = f"⏰ Напоминаю: {reminder['text_content']}"
+                text: str = tr("reminder.chat_message", text=reminder["text_content"])
+                plain_text: str = tr("reminder.plain_message", text=reminder["text_content"])
                 logger.info(f"Сработало напоминание ID={reminder['id']}: {reminder['text_content']}")
 
                 if QSystemTrayIcon.isSystemTrayAvailable():
-                    self.tray_icon.showMessage("Kez напоминает 🐦", str(reminder["text_content"]),
+                    self.tray_icon.showMessage(tr("reminder.notify_title"), str(reminder["text_content"]),
                                                QSystemTrayIcon.MessageIcon.Information, 10000)
 
                 chat_id: int | None = reminder.get("chat_id")
@@ -553,7 +573,7 @@ class KezMainWindow(QMainWindow):
             short_title: str = " ".join((text or attachment_names).split()[:5])
             if len(short_title) > 30:
                 short_title = short_title[:27] + "..."
-            title: str = short_title or "Новый чат"
+            title: str = short_title or tr("main.new_chat_title")
             try:
                 new_id = await db.create_chat(title)
                 self.current_chat_id = int(new_id) if new_id else 1
@@ -579,10 +599,10 @@ class KezMainWindow(QMainWindow):
                 if not is_done:
                     self.input_bar.set_placeholder(self.onboarding.get_current_placeholder())
                 else:
-                    self.input_bar.set_placeholder("Message Kez...")
+                    self.input_bar.set_placeholder(tr("main.input_placeholder"))
             except Exception as e:
                 logger.error(f"Ошибка при обработке ответа онбординга: {e}")
-                reply = "Чирик! 🐦 Мои перышки запутались... Давай попробуем еще раз!"
+                reply = tr("main.onboarding_error")
             finally:
                 self.chat_area.hide_typing_indicator()
 
@@ -597,7 +617,9 @@ class KezMainWindow(QMainWindow):
         if not created_new_chat_now:
             try:
                 current_title = self.sidebar.get_current_chat_title()
-                if current_title in ("Новый чат", "Основной чат"):
+                # Названия по умолчанию на обоих языках — чат мог быть создан до смены языка
+                default_titles = {tr("main.new_chat_title", language=lang) for lang in ("ru", "en")} | {"Основной чат"}
+                if current_title in default_titles:
                     short_title = " ".join((text or attachment_names).split()[:5])
                     if len(short_title) > 30:
                         short_title = short_title[:27] + "..."
@@ -665,7 +687,7 @@ class KezMainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"Ошибка при потоковой генерации ответа KezAgent: {e}")
             if streaming_browser is None:
-                self.chat_area.add_message("Ой, у меня что-то пошло не так при обработке сообщения... Чирик! 🐦", "ai")
+                self.chat_area.add_message(tr("main.generic_error"), "ai")
         finally:
             self.chat_area.hide_typing_indicator()
 

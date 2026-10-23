@@ -25,7 +25,21 @@ PROMPTS_DIR: Path = Path(__file__).resolve().parent.parent.parent / "Kez" / "pro
 if not PROMPTS_DIR.exists():
     PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
 
-PROMPTS: dict[str, str] = _load_all_prompts(PROMPTS_DIR)
+class _LocalizedPrompts(dict):
+    """
+    Словарь промптов, который при чтении подставляет язык по умолчанию ({DEFAULT_LANGUAGE})
+    из текущих настроек — смена языка в настройках действует сразу, без перезагрузки промптов.
+    """
+
+    def __getitem__(self, key: str) -> str:
+        from core.i18n import localize_prompt
+        return localize_prompt(super().__getitem__(key))
+
+    def get(self, key: str, default: str = "") -> str:
+        return self[key] if key in self else default
+
+
+PROMPTS: dict[str, str] = _LocalizedPrompts(_load_all_prompts(PROMPTS_DIR))
 
 # Паттерны для фото
 PHOTO_PATTERNS: list[re.Pattern] = [
@@ -79,44 +93,78 @@ WEB_SEARCH_PATTERNS: list[re.Pattern] = [
 
 # Быстрые шаблоны с готовыми ответами в стиле Kez (птичий стиль)
 # Мгновенный ответ без задержки и обращения к LLM
-QUICK_CONVERSATION_RESPONSES: list[tuple[re.Pattern, list[str]]] = [
+# Мгновенные ответы: отвечаем на языке сообщения пользователя (ключи 'ru' / 'en')
+QUICK_CONVERSATION_RESPONSES: list[tuple[re.Pattern, dict[str, list[str]]]] = [
     (
         re.compile(r"^(привет|хай|ку|здравствуй|здравствуйте|добрый день|добрый вечер|доброе утро|салам|йоу|hello|hi|hey)\b[\s!.,?~]*$", re.IGNORECASE),
-        [
-            "Чирик-чирик! 🐦 Привет, мой пернатый друг! Как твоё настроение сегодня?",
-            "Фррр-чик! Приветик! Я тут как раз чистил перышки. Что у нас на повестке дня?",
-            "Чирик! Рад тебя слышать! О чём пощебечем сегодня? ✨",
-        ]
+        {
+            "ru": [
+                "Чирик-чирик! 🐦 Привет, мой пернатый друг! Как твоё настроение сегодня?",
+                "Фррр-чик! Приветик! Я тут как раз чистил перышки. Что у нас на повестке дня?",
+                "Чирик! Рад тебя слышать! О чём пощебечем сегодня? ✨",
+            ],
+            "en": [
+                "Chirp-chirp! 🐦 Hello, my feathered friend! How are you feeling today?",
+                "Frrr-chik! Hi there! I was just preening my feathers. What's on the agenda today?",
+                "Chirp! Glad to hear from you! What shall we chirp about today? ✨",
+            ],
+        }
     ),
     (
         re.compile(r"^(как дела|как ты|как жизнь|как поживаешь|что нового|как делишки|how are you|how is it going)\b[\s!.,?~]*$", re.IGNORECASE),
-        [
-            "Всё чик-чирик! 🐦 Гнёздышко тёплое, пёрышки начищены, готов к любым интересным задачкам! А ты как сам?",
-            "Чирик! Настроение парить под облаками! Как твои успехи сегодня?",
-            "Пока не поймал самого вкусного цифрового червячка, но полон энергии! Что у тебя новенького?",
-        ]
+        {
+            "ru": [
+                "Всё чик-чирик! 🐦 Гнёздышко тёплое, пёрышки начищены, готов к любым интересным задачкам! А ты как сам?",
+                "Чирик! Настроение парить под облаками! Как твои успехи сегодня?",
+                "Пока не поймал самого вкусного цифрового червячка, но полон энергии! Что у тебя новенького?",
+            ],
+            "en": [
+                "All chirpy! 🐦 The nest is warm, the feathers are polished, and I'm ready for any interesting task! How about you?",
+                "Chirp! I'm in a soaring-above-the-clouds mood! How is your day going?",
+                "I haven't caught the tastiest digital worm yet, but I'm full of energy! What's new with you?",
+            ],
+        }
     ),
     (
         re.compile(r"^(кто ты|ты кто|расскажи о себе|что ты такое|как тебя зовут|who are you)\b[\s!.,?~]*$", re.IGNORECASE),
-        [
-            "Я Kez — твоя верная цифровая птица и умный AI-компаньон! 🐦 Умею общаться, искать всё в интернете, помнить наш разговор и поднимать настроение. Чирик!",
-            "Чирик! Я Kez — пернатый ассистент прямо на твоём экране. Помогаю с делами, ищу информацию и всегда готов поддержать беседу! ✨",
-        ]
+        {
+            "ru": [
+                "Я Kez — твоя верная цифровая птица и умный AI-компаньон! 🐦 Умею общаться, искать всё в интернете, помнить наш разговор и поднимать настроение. Чирик!",
+                "Чирик! Я Kez — пернатый ассистент прямо на твоём экране. Помогаю с делами, ищу информацию и всегда готов поддержать беседу! ✨",
+            ],
+            "en": [
+                "I'm Kez — your loyal digital bird and smart AI companion! 🐦 I can chat, search the web, remember our conversations and lift your mood. Chirp!",
+                "Chirp! I'm Kez — a feathered assistant right on your screen. I help with tasks, find information and I'm always up for a chat! ✨",
+            ],
+        }
     ),
     (
         re.compile(r"^(откуда ты|где ты живешь|где твой дом|где ты родился|where are you from)\b[\s!.,?~]*$", re.IGNORECASE),
-        [
-            "Я родом из облачных серверов и аккуратных строчек кода, но моё самое уютное гнёздышко — прямо здесь, в твоём приложении! 🐦",
-            "Мои крылья летают по цифровым проводам, а свиваю гнездо прямо у тебя на экране! Чирик! ✨",
-        ]
+        {
+            "ru": [
+                "Я родом из облачных серверов и аккуратных строчек кода, но моё самое уютное гнёздышко — прямо здесь, в твоём приложении! 🐦",
+                "Мои крылья летают по цифровым проводам, а свиваю гнездо прямо у тебя на экране! Чирик! ✨",
+            ],
+            "en": [
+                "I come from cloud servers and neat lines of code, but my coziest nest is right here in your app! 🐦",
+                "My wings fly along digital wires, and I build my nest right on your screen! Chirp! ✨",
+            ],
+        }
     ),
     (
         re.compile(r"^(спасибо|благодарю|пасиб|от души|спасибочки|thx|thanks|thank you)\b[\s!.,?~]*$", re.IGNORECASE),
-        [
-            "Всегда рад помочь! Почеши за ушком и обращайся ещё! ✨ Чирик!",
-            "Чирик-чирик! Не за что, для хорошего друга мне никаких зёрнышек не жалко! 🐦",
-            "На здоровье! Если понадобится что-то ещё — я тут рядышком! 🌟",
-        ]
+        {
+            "ru": [
+                "Всегда рад помочь! Почеши за ушком и обращайся ещё! ✨ Чирик!",
+                "Чирик-чирик! Не за что, для хорошего друга мне никаких зёрнышек не жалко! 🐦",
+                "На здоровье! Если понадобится что-то ещё — я тут рядышком! 🌟",
+            ],
+            "en": [
+                "Always happy to help! Come back any time! ✨ Chirp!",
+                "Chirp-chirp! You're welcome — I'd share all my seeds with a good friend! 🐦",
+                "My pleasure! If you need anything else, I'm right here! 🌟",
+            ],
+        }
     ),
 ]
 

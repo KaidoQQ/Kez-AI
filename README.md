@@ -10,6 +10,7 @@
   <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/Database-PostgreSQL%2016-336791?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"></a>
   <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Container-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
   <a href="./LICENSE.txt"><img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License"></a>
+  <a href="https://github.com/KaidoQQ/Kez-AI/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/KaidoQQ/Kez-AI/tests.yml?branch=master&style=for-the-badge&label=Tests" alt="Tests"></a>
 </p>
 
 <p align="center">
@@ -214,6 +215,16 @@
       </ul>
     </td>
   </tr>
+  <tr>
+    <td colspan="2">
+      <h3>🌍 Russian & English (i18n)</h3>
+      <ul>
+        <li><b>First-Run Choice:</b> On the very first launch Kez asks for the language (pre-selected from the system locale); it can be changed any time in <b>Settings → General</b> — the interface switches instantly, no restart.</li>
+        <li><b>Locale Files:</b> All UI texts and Kez's fixed replies live in <code>core/locales/ru.json</code> / <code>en.json</code> and are read via <code>tr("key")</code> with a fallback to Russian.</li>
+        <li><b>Language-Aware AI:</b> Prompts get the default language through a <code>{DEFAULT_LANGUAGE}</code> placeholder, while Kez still answers in the language you actually write in; instant greetings reply in the language of your message.</li>
+      </ul>
+    </td>
+  </tr>
 </table>
 
 ---
@@ -351,6 +362,7 @@ kez-ai/
 │       │   ├── input_bar.py    # Input controls: multi-attachments, Ctrl+V paste, voice recording
 │       │   ├── sidebar.py      # Chat history drawer with context menu & full-text search
 │       │   ├── settings_dialog.py # Settings panel (General / Voice / Memory)
+│       │   ├── language_dialog.py # First-run language choice (RU / EN)
 │       │   ├── pet_window.py   # Always-on-top desktop pet with speech bubble
 │       │   ├── speech_queue.py # Ordered sentence-by-sentence TTS playback
 │       │   ├── wake_word.py    # "Эй, Kez" listener with local voice-activity detection
@@ -368,6 +380,8 @@ kez-ai/
 │   │   ├── const.py            # Regex intent rules, fallback models & prompt loading
 │   │   └── file_const.py       # Supported file types, export formats, TTS models & voices
 │   ├── settings.py             # User settings (~/.kez_ai/settings.json)
+│   ├── i18n.py                 # tr() translations, language detection, prompt localization
+│   ├── 📁 locales/             # ru.json / en.json UI texts and fixed replies
 │   ├── loader.py               # Database and environment initialization
 │   └── logger.py               # Structured console & JSONL logger
 ├── 📁 tech/                    # Database abstraction layer
@@ -451,7 +465,7 @@ Everything else is configured in the app via **⚙️ Settings** and saved to `~
 
 | Tab | Options |
 |---|---|
-| **Общие** | Theme (dark / light), preferred Gemini model, export folder (default `~/Documents/Kez AI`) |
+| **Общие** | Language (Русский / English), theme (dark / light), preferred Gemini model, export folder (default `~/Documents/Kez AI`) |
 | **Голос** | TTS voice, speak all replies, streaming speech, "Эй, Kez" + sensitivity threshold |
 | **Память** | Learn facts from conversations, review / forget remembered facts |
 
@@ -492,7 +506,9 @@ python main.py
 python -m pytest tests -q
 ```
 
-Tests run Qt in offscreen mode and need neither a database nor an API key: they cover the intent rules, all six export formats, reminder time parsing, marker parsing, fact extraction helpers, wake-word matching and settings.
+Tests run Qt in offscreen mode and need no API key: they cover the intent rules, all six export formats, reminder time parsing, marker parsing, fact extraction helpers, wake-word matching and settings. `tests/test_database.py` runs against the PostgreSQL from `DATABASE_URL` (start it with `docker-compose up -d db`) and is skipped if the database is unreachable.
+
+**CI:** [GitHub Actions](.github/workflows/tests.yml) runs the whole suite on every push and pull request to `master` / `dev`, with a PostgreSQL 16 service container.
 
 ---
 
@@ -520,6 +536,7 @@ Tests run Qt in offscreen mode and need neither a database nor an API key: they 
 - [x] 📊 Excel / PowerPoint export and DOCX output.
 - [x] 🧪 pytest test suite.
 - [x] 🔎 Full-text search across chat history.
+- [x] 🌍 Russian / English interface with first-run language choice.
 - [ ] 🔁 Recurring reminders ("каждый день в 9:00") and snooze from the notification.
 - [ ] 🌐 Offline wake word (local keyword spotting) to avoid sending phrases to the cloud.
 

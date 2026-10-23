@@ -2,6 +2,7 @@ import re
 import html
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QWheelEvent
+from core.i18n import tr
 from PyQt6.QtWidgets import (
     QScrollArea, QWidget, QVBoxLayout, QHBoxLayout, QTextBrowser, QLabel
 )
@@ -269,7 +270,7 @@ class ChatAreaWidget(QScrollArea):
         if self._typing_widget is not None:
             return
 
-        lbl = QLabel("Kez думает •")
+        lbl = QLabel(f"{tr('chat.typing')} •")
         lbl.setProperty("msg_type", "typing")
         lbl.setStyleSheet("/* update */")
 
@@ -286,7 +287,7 @@ class ChatAreaWidget(QScrollArea):
         def _update_dots() -> None:
             self._typing_dots_count = (self._typing_dots_count % 3) + 1
             dots: str = "• " * self._typing_dots_count
-            lbl.setText(f"Kez думает {dots.strip()}")
+            lbl.setText(f"{tr('chat.typing')} {dots.strip()}")
 
         self._typing_timer = QTimer(self)
         self._typing_timer.timeout.connect(_update_dots)

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from core.loader import db
 from core.logger import logger
+from core.i18n import tr
 from core.constants.const import (
     PROMPTS,
     WEEKDAYS_RU,
@@ -87,7 +88,7 @@ def parse_reminder_locally(text: str, now: datetime) -> ReminderRequest | None:
 
     reminder_text: str = _clean_reminder_text(text, spans)
     if not reminder_text:
-        reminder_text = "Таймер" if is_timer else "Напоминание"
+        reminder_text = tr("reminder.timer_text") if is_timer else tr("reminder.default_text")
     return ReminderRequest(due_at=due_at, text=reminder_text)
 
 
@@ -109,7 +110,7 @@ async def parse_reminder_with_llm(text: str, now: datetime) -> ReminderRequest |
         if not due_raw:
             return None
         due_at: datetime = datetime.fromisoformat(due_raw).replace(tzinfo=None)
-        return ReminderRequest(due_at=due_at, text=str(data.get("text", "")).strip() or "Напоминание")
+        return ReminderRequest(due_at=due_at, text=str(data.get("text", "")).strip() or tr("reminder.default_text"))
     except (json.JSONDecodeError, ValueError, AttributeError) as e:
         logger.error(f"Не удалось разобрать ответ LLM для напоминания: {e}")
         return None
@@ -122,12 +123,12 @@ def format_due(due_at: datetime, now: datetime) -> str:
         delta: timedelta = due_at - now
         if delta < timedelta(hours=1):
             minutes: int = max(1, round(delta.total_seconds() / 60))
-            return f"через {minutes} мин (в {time_str})"
-        return f"сегодня в {time_str}"
+            return tr("reminder.due_minutes", minutes=minutes, time=time_str)
+        return tr("reminder.due_today", time=time_str)
     if due_at.date() == (now + timedelta(days=1)).date():
-        return f"завтра в {time_str}"
+        return tr("reminder.due_tomorrow", time=time_str)
     # Кириллица в strftime на Windows падает с UnicodeEncodeError — собираем строку вручную
-    return f"{due_at.strftime('%d.%m')} в {time_str}"
+    return tr("reminder.due_date", date=due_at.strftime("%d.%m"), time=time_str)
 
 
 async def create_reminder_from_request(user_text: str, chat_id: int | None) -> str:
@@ -140,19 +141,19 @@ async def create_reminder_from_request(user_text: str, chat_id: int | None) -> s
     if re.search(r"\b(мои напоминания|какие напоминания|список напоминаний|my reminders)\b", user_text, re.IGNORECASE):
         pending: list[dict] = await db.get_pending_reminders()
         if not pending:
-            return "У тебя нет активных напоминаний — гнёздышко чистое! 🐦"
+            return tr("reminder.none")
         lines: list[str] = [f"- **{format_due(r['due_at'], now)}** — {r['text_content']}" for r in pending]
-        return "⏰ Твои напоминания:\n" + "\n".join(lines)
+        return tr("reminder.list_header") + "\n" + "\n".join(lines)
 
     request: ReminderRequest | None = parse_reminder_locally(user_text, now)
     if request is None:
         request = await parse_reminder_with_llm(user_text, now)
     if request is None:
-        return "Чирик! А когда напомнить? 🐦 Скажи, например: «напомни через 20 минут проверить духовку» или «завтра в 9:00 позвонить маме»."
+        return tr("reminder.ask_time")
     if request.due_at <= now:
-        return "Хм, это время уже прошло... Я пока не умею летать в прошлое! 🐦⏳"
+        return tr("reminder.in_past")
 
     reminder_id = await db.add_reminder(chat_id, request.text, request.due_at)
     if reminder_id is None:
-        return "Ой, не получилось сохранить напоминание... Попробуй ещё раз! 🐦"
-    return f"⏰ Готово! Напомню **{format_due(request.due_at, now)}**: {request.text} 🐦"
+        return tr("reminder.save_failed")
+    return tr("reminder.created", when=format_due(request.due_at, now), text=request.text)
