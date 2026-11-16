@@ -26,23 +26,6 @@ class ChatFileWidget(QWidget):
         self.setObjectName("chat_file_card")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setMaximumWidth(520)
-        self.setStyleSheet("""
-            QWidget#chat_file_card {
-                background-color: #0F172A;
-                border: 1px solid rgba(240, 234, 218, 0.2);
-                border-radius: 12px;
-            }
-            QLabel { color: #F0EADA; background: transparent; border: none; }
-            QLabel#file_dir_label { color: rgba(240, 234, 218, 0.55); font-size: 11px; }
-            QPushButton {
-                background-color: rgba(29, 43, 83, 220);
-                color: #F0EADA;
-                border: none;
-                border-radius: 8px;
-                padding: 5px 12px;
-            }
-            QPushButton:hover { background-color: rgba(39, 58, 113, 255); }
-        """)
 
         path = Path(self.file_path)
         exists: bool = path.exists()

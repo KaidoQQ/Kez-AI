@@ -1,186 +1,67 @@
-/* Базовая тема приложения (Темно-синий + Кремовый акцент, глубокие темные тона) */
-QMainWindow {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0B1120, stop:1 #172033); /* Глубокий темно-синий градиент */
-}
-
-/* Боковая панель (Sidebar) */
-#sidebar {
-    background-color: rgba(7, 11, 20, 200); /* Почти черный/очень темно-синий */
-    border-right: 1px solid rgba(240, 234, 218, 50); /* Легкий кремовый контур */
-    border-top-right-radius: 20px;
-    border-bottom-right-radius: 20px;
-}
-#sidebar QLabel {
-    color: #F0EADA; /* Кремовый текст */
-    font-weight: bold;
-    font-size: 16px;
-    padding: 10px;
-}
-
-/* Зона чата (Scroll Area) */
-#chat_area {
-    background-color: transparent;
-    border: none;
-}
-QWidget#chat_content {
-    background-color: transparent;
-}
-
-/* Стилизация скроллбара */
-QScrollBar:vertical {
-    background: transparent;
-    width: 8px;
-    margin: 0px;
-}
-QScrollBar::handle:vertical {
-    background: rgba(240, 234, 218, 40);
-    min-height: 25px;
-    border-radius: 4px;
-}
-QScrollBar::handle:vertical:hover {
-    background: rgba(240, 234, 218, 100);
-}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-    height: 0px;
-}
-QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-    background: none;
-}
-
-
-/* Поле ввода */
-#input_field {
-    background-color: rgba(23, 32, 51, 180);
-    color: #F0EADA; /* Кремовый текст */
-    border: 2px solid rgba(240, 234, 218, 50); /* Тусклая кремовая рамка */
-    border-radius: 22px; 
-    padding: 10px 15px;
-    font-size: 14px;
-}
-#input_field:focus {
-    border: 2px solid rgba(240, 234, 218, 150); /* Яркая кремовая рамка при фокусе */
-    background-color: rgba(23, 32, 51, 220);
-}
-
-/* Кнопки */
-#send_btn, #action_btn {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(29, 43, 83, 220), stop:1 rgba(17, 26, 51, 220)); /* Выделяющийся темно-синий градиент */
-    color: #F0EADA; /* Кремовый текст */
-    border: none;
-    border-radius: 22px;
-    padding: 0px; /* Убрали отступы для квадратных кнопок */
-    font-weight: bold;
-    font-size: 14px;
-    border: 1px solid rgba(240, 234, 218, 30);
-}
-#send_btn:hover, #action_btn:hover {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(39, 58, 113, 255), stop:1 rgba(23, 35, 70, 255));
-    border: 1px solid rgba(240, 234, 218, 80);
-}
-
-#menu_btn {
-    background-color: rgba(0, 0, 0, 0);
-    color: #F0EADA;
-    border: none;
-    border-radius: 20px;
-    font-size: 20px;
-    padding: 0px;
-}
-#menu_btn:hover {
-    background-color: rgba(240, 234, 218, 20); /* Легкая кремовая подсветка */
-}
-
-/* Сообщения (Баблы) */
-.QLabel[msg_type="user"], QTextBrowser[msg_type="user"] {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(29, 43, 83, 230), stop:1 rgba(17, 26, 51, 230));
-    color: #F0EADA; /* Кремовый текст */
-    border: 1px solid rgba(240, 234, 218, 20);
-    border-radius: 18px;
-    padding: 10px 16px;
-    margin: 5px;
-    font-size: 14px;
-    selection-background-color: #3B82F6;
-    selection-color: #FFFFFF;
-}
-.QLabel[msg_type="ai"], QTextBrowser[msg_type="ai"] {
-    background-color: rgba(30, 41, 59, 200); /* Приглушенный серо-синий */
-    color: #E2DFD2; /* Чуть более тусклый кремовый */
-    border: 1px solid rgba(240, 234, 218, 10);
-    border-radius: 18px;
-    padding: 10px 16px;
-    margin: 5px;
-    font-size: 14px;
-    selection-background-color: #3B82F6;
-    selection-color: #FFFFFF;
-}
-.QLabel[msg_type="typing"] {
-    background-color: rgba(30, 41, 59, 140);
-    color: #A0AEC0;
-    border: 1px dashed rgba(240, 234, 218, 20);
-    border-radius: 16px;
-    padding: 8px 16px;
-    margin: 5px;
-    font-size: 13px;
-    font-style: italic;
-}
-
-/* Стили для новых кнопок */
-#settings_btn, #pet_btn {
-    background-color: rgba(0, 0, 0, 0);
-    color: #F0EADA;
-    border: none;
-    border-radius: 20px;
-    font-size: 20px;
-    padding: 0px;
-}
-#settings_btn:hover, #pet_btn:hover {
-    background-color: rgba(240, 234, 218, 20);
-}
-
-#new_chat_btn {
-    background-color: transparent;
-    color: #F0EADA;
-    border: 1px solid rgba(240, 234, 218, 50);
-    border-radius: 12px;
-    padding: 5px 10px;
-    font-size: 12px;
-    margin-bottom: 10px;
-}
-#new_chat_btn:hover {
-    background-color: rgba(240, 234, 218, 20);
-}
-
-#send_btn {
-    padding: 10px 20px; /* Возвращаем отступы для кнопки Send */
-}
-
-/* Список истории чатов в сайдбаре */
-QListWidget#chat_list_widget {
-    background-color: transparent;
-    border: none;
-    outline: none;
-    color: #F0EADA;
-    font-size: 13px;
-}
-
-QListWidget#chat_list_widget::item {
-    background-color: rgba(23, 32, 51, 100);
-    color: #E2DFD2;
-    border: 1px solid rgba(240, 234, 218, 20);
-    border-radius: 10px;
-    padding: 10px 12px;
-    margin-bottom: 6px;
-}
-
-QListWidget#chat_list_widget::item:hover {
-    background-color: rgba(39, 58, 113, 160);
-    border: 1px solid rgba(240, 234, 218, 60);
-    color: #FFFFFF;
-}
-
-QListWidget#chat_list_widget::item:selected {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(39, 58, 113, 230), stop:1 rgba(23, 35, 70, 230));
-    border: 1px solid rgba(240, 234, 218, 120);
-    color: #F0EADA;
-    font-weight: bold;
-}
+/* Native Qt design inspired by assistant-ui's restrained chat layout. */
+QWidget { font-family: "Segoe UI", "DejaVu Sans", sans-serif; font-size: 14px; color: #f4f4f5; }
+QMainWindow, QDialog, #workspace { background: #18181b; }
+QLabel { background: transparent; }
+QToolTip { background: #242427; color: #f4f4f5; border: 1px solid #3b3b42; padding: 6px; }
+#sidebar { background: #111113; border-right: 1px solid #3b3b42; }
+#brand { font-size: 23px; font-weight: 700; padding: 8px 4px 20px; }
+#section_label, #muted, #file_dir_label, #composer_hint { color: #a1a1aa; font-size: 12px; }
+#section_label { padding: 18px 6px 6px; }
+#header_title { font-size: 16px; font-weight: 600; }
+#model_badge { color: #a1a1aa; font-size: 12px; padding: 4px 12px; }
+QPushButton { background: #242427; border: 1px solid #3b3b42; border-radius: 8px; padding: 8px 12px; }
+QPushButton:hover { background: #303034; }
+QPushButton:pressed { background: #36363c; }
+QPushButton:focus { border: 1px solid #a99af8; }
+QPushButton:disabled { color: #a1a1aa; background: #111113; }
+#new_chat_btn { text-align: left; font-weight: 600; padding: 11px 14px; }
+#action_btn, #menu_btn, #settings_btn, #pet_btn, #copy_btn { background: transparent; border: 1px solid transparent; padding: 0; }
+#action_btn:hover, #menu_btn:hover, #settings_btn:hover, #pet_btn:hover, #copy_btn:hover { background: #303034; }
+#action_btn:focus, #menu_btn:focus, #settings_btn:focus, #pet_btn:focus, #copy_btn:focus { border: 1px solid #a99af8; }
+#send_btn, #language_continue { background: #f4f4f5; color: #18181b; font-weight: 600; border: none; padding: 8px 16px; }
+#send_btn:hover, #language_continue:hover { background: #a1a1aa; }
+#send_btn:disabled { background: #303034; color: #a1a1aa; }
+#meet_kez_btn { color: #a99af8; background: #242427; border: 1px solid #3b3b42; }
+QLineEdit, QComboBox, QSpinBox { background: #242427; border: 1px solid #3b3b42; border-radius: 8px; padding: 9px 10px; selection-background-color: #a99af8; }
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border-color: #a99af8; }
+QComboBox QAbstractItemView { background: #242427; color: #f4f4f5; selection-background-color: #36363c; }
+#search_field { background: transparent; font-size: 12px; }
+QListWidget { background: #242427; border: 1px solid #3b3b42; border-radius: 8px; outline: none; }
+#chat_list_widget { background: transparent; border: none; }
+QListWidget::item { padding: 11px 10px; border-radius: 7px; margin: 2px 0; }
+QListWidget::item:hover { background: #303034; }
+QListWidget::item:selected { background: #36363c; color: #f4f4f5; }
+#chat_area, #chat_content { background: transparent; border: none; }
+QTextBrowser { border: none; background: transparent; selection-background-color: #a99af8; selection-color: white; }
+QTextBrowser[msg_type="user"] { background: #242427; border-radius: 16px; padding: 12px 16px; font-size: 15px; }
+QTextBrowser[msg_type="ai"] { background: transparent; padding: 8px 0; font-size: 15px; }
+QLabel[msg_type="typing"] { color: #a1a1aa; padding: 12px; }
+#composer { background: #242427; border: 1px solid #3b3b42; border-radius: 18px; }
+#input_field { background: transparent; border: none; padding: 6px; font-size: 15px; selection-background-color: #a99af8; }
+#welcome_mark { font-size: 32px; color: #a99af8; }
+#welcome_title { font-size: 28px; font-weight: 600; }
+#welcome_subtitle { color: #a1a1aa; font-size: 14px; }
+#suggestion { text-align: left; background: #242427; padding: 16px; border-radius: 12px; }
+#suggestion:hover { border-color: #a99af8; }
+#chat_file_card, #chat_image_label, #pet_card { background: #242427; border: 1px solid #3b3b42; border-radius: 12px; }
+#pet_bubble { background: #242427; color: #f4f4f5; border: 1px solid #3b3b42; border-radius: 12px; padding: 10px; }
+#pet_control { padding: 0; }
+QMenu { background: #242427; border: 1px solid #3b3b42; padding: 6px; }
+QMenu::item { padding: 8px 24px; }
+QMenu::item:selected { background: #36363c; }
+QTabWidget::pane { border: 1px solid #3b3b42; border-radius: 10px; background: #18181b; }
+#settings_tab { background: transparent; }
+QTabBar::tab { background: transparent; color: #a1a1aa; padding: 12px 20px; border-bottom: 2px solid transparent; }
+QTabBar::tab:selected { color: #f4f4f5; border-bottom-color: #a99af8; }
+QCheckBox { spacing: 10px; padding: 5px 0; }
+QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid #a1a1aa; border-radius: 4px; background: #242427; }
+QCheckBox::indicator:checked { background: #a99af8; border-color: #a99af8; }
+#language_heading { font-size: 24px; font-weight: 600; }
+#language_subtitle { color: #a1a1aa; }
+#language_option { padding: 18px; font-size: 16px; }
+#language_option:checked { border-color: #a99af8; background: #36363c; }
+QScrollBar:vertical { background: transparent; width: 6px; margin: 0; }
+QScrollBar::handle:vertical { background: #3b3b42; min-height: 30px; border-radius: 3px; }
+QScrollBar::handle:vertical:hover { background: #a1a1aa; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }

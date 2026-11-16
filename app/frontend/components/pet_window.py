@@ -6,36 +6,6 @@ from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFrame
 from core.i18n import tr
 
-PET_STYLE: str = """
-    QFrame#pet_card {
-        background-color: rgba(11, 17, 32, 235);
-        border: 1px solid rgba(240, 234, 218, 70);
-        border-radius: 16px;
-    }
-    QLabel#pet_bubble {
-        background-color: #F0EADA;
-        color: #1D2B53;
-        border-radius: 12px;
-        padding: 8px 10px;
-        font-size: 12px;
-    }
-    QLineEdit#pet_input {
-        background-color: rgba(23, 32, 51, 220);
-        color: #F0EADA;
-        border: 1px solid rgba(240, 234, 218, 60);
-        border-radius: 12px;
-        padding: 5px 10px;
-        font-size: 12px;
-    }
-    QPushButton#pet_control {
-        background: transparent;
-        color: #F0EADA;
-        border: none;
-        font-size: 14px;
-        font-weight: bold;
-    }
-    QPushButton#pet_control:hover { color: #FFFFFF; background-color: rgba(240, 234, 218, 30); border-radius: 10px; }
-"""
 
 
 class PetWindow(QWidget):
@@ -54,7 +24,6 @@ class PetWindow(QWidget):
             Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setStyleSheet(PET_STYLE)
         self.idle_video_path: str = idle_video_path
         self._drag_offset: QPoint | None = None
         self._bubble_timer = QTimer(self)

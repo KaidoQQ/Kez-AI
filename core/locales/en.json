@@ -159,5 +159,19 @@
   "onboarding.bad_birth": "Chirp! 🐣 Please write your age as a number or your year of birth!",
   "onboarding.bad_interests": "Chirp! Tell me at least a couple of words about your hobbies or work! ✨",
   "onboarding.unknown_step": "Unknown onboarding step.",
-  "onboarding.final": "Chirp-chirp! 🐦 Hooray! Now we're officially friends, {full_name}! ✨\n\nI remembered your age/year: {birth_val}, and your interests: {interests}. My nest is now tuned just for you! What would you like to talk about, or what should I look up for you?"
+  "onboarding.final": "Chirp-chirp! 🐦 Hooray! Now we're officially friends, {full_name}! ✨\n\nI remembered your age/year: {birth_val}, and your interests: {interests}. My nest is now tuned just for you! What would you like to talk about, or what should I look up for you?",
+  "ui.toggle_sidebar": "Toggle chat sidebar",
+  "ui.composer_hint": "Enter to send · Shift+Enter for a new line",
+  "ui.welcome_title": "Where shall we begin?",
+  "ui.welcome_subtitle": "Ask, imagine, create — together with Kez.",
+  "ui.suggest_write": "Help me write",
+  "ui.suggest_learn": "Explain a concept",
+  "ui.suggest_plan": "Make a plan",
+  "ui.suggest_code": "Explore some code",
+  "ui.prompt_write": "Help me write something. First ask about the topic and audience.",
+  "ui.prompt_learn": "Help me understand a new topic. Ask what I would like to learn.",
+  "ui.prompt_plan": "Help me make a step-by-step plan. First ask about my goal.",
+  "ui.prompt_code": "Help me with code. Ask what I am working on.",
+  "ui.copy": "Copy",
+  "ui.copied": "Copied"
 }

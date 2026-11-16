@@ -9,20 +9,6 @@ from core.settings import KezSettings, available_models
 from core.i18n import tr, SUPPORTED_LANGUAGES
 from core.constants.file_const import TTS_VOICES
 
-DIALOG_STYLE: str = """
-    QDialog, QTabWidget::pane, QWidget#settings_tab { background-color: #111A2E; color: #F0EADA; }
-    QLabel, QCheckBox { color: #F0EADA; }
-    QTabBar::tab { background: #172033; color: #E2DFD2; padding: 8px 16px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
-    QTabBar::tab:selected { background: #2B3E6B; color: #FFFFFF; }
-    QComboBox, QLineEdit, QSpinBox, QListWidget {
-        background-color: #172033; color: #F0EADA; border: 1px solid rgba(240, 234, 218, 50);
-        border-radius: 8px; padding: 5px 8px;
-    }
-    QPushButton {
-        background-color: rgba(29, 43, 83, 220); color: #F0EADA; border: none; border-radius: 8px; padding: 6px 14px;
-    }
-    QPushButton:hover { background-color: rgba(39, 58, 113, 255); }
-"""
 
 
 class SettingsDialog(QDialog):
@@ -38,13 +24,14 @@ class SettingsDialog(QDialog):
     def __init__(self, current: KezSettings, facts: list[dict], parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(tr("settings.title"))
-        self.setMinimumSize(520, 460)
-        self.setStyleSheet(DIALOG_STYLE)
+        self.setMinimumSize(580, 500)
         self._current: KezSettings = current
         self._setup_ui(facts)
 
     def _setup_ui(self, facts: list[dict]) -> None:
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
         tabs = QTabWidget()
         tabs.addTab(self._build_general_tab(), tr("settings.tab_general"))
         tabs.addTab(self._build_voice_tab(), tr("settings.tab_voice"))
@@ -63,7 +50,8 @@ class SettingsDialog(QDialog):
         tab.setObjectName("settings_tab")
         form = QFormLayout(tab)
         form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
-        form.setSpacing(12)
+        form.setSpacing(16)
+        form.setContentsMargins(20, 24, 20, 24)
         return tab, form
 
     def _build_general_tab(self) -> QWidget:
@@ -127,7 +115,7 @@ class SettingsDialog(QDialog):
 
         hint = QLabel(tr("settings.wake_hint"))
         hint.setWordWrap(True)
-        hint.setStyleSheet("color: rgba(240, 234, 218, 0.6); font-size: 11px;")
+        hint.setObjectName("muted")
         form.addRow(hint)
         return tab
 

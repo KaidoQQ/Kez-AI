@@ -5,22 +5,6 @@ from core.i18n import tr, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE
 
 LANGUAGE_FLAGS: dict[str, str] = {"ru": "🇷🇺", "en": "🇬🇧"}
 
-DIALOG_STYLE: str = """
-    QDialog { background-color: #111A2E; }
-    QLabel#language_heading { color: #F0EADA; font-size: 18px; font-weight: bold; }
-    QLabel#language_subtitle { color: rgba(240, 234, 218, 0.7); font-size: 12px; }
-    QPushButton#language_option {
-        background-color: #172033; color: #F0EADA; border: 2px solid rgba(240, 234, 218, 40);
-        border-radius: 12px; padding: 14px 22px; font-size: 15px;
-    }
-    QPushButton#language_option:hover { border-color: rgba(240, 234, 218, 120); }
-    QPushButton#language_option:checked { background-color: #2B3E6B; border-color: #F0EADA; }
-    QPushButton#language_continue {
-        background-color: #F0EADA; color: #1D2B53; border: none; border-radius: 10px;
-        padding: 9px 26px; font-weight: bold; font-size: 13px;
-    }
-    QPushButton#language_continue:hover { background-color: #FFFFFF; }
-"""
 
 
 class LanguageDialog(QDialog):
@@ -31,8 +15,10 @@ class LanguageDialog(QDialog):
 
     def __init__(self, initial_language: str = DEFAULT_LANGUAGE, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setStyleSheet(DIALOG_STYLE)
-        self.setMinimumWidth(440)
+        from app.frontend.theme import apply_theme
+        from core.settings import settings
+        apply_theme(settings.theme)
+        self.setMinimumWidth(480)
         self.selected_language: str = initial_language if initial_language in SUPPORTED_LANGUAGES else DEFAULT_LANGUAGE
         self._setup_ui()
         self._retranslate()

@@ -25,17 +25,21 @@ class SidebarWidget(QFrame):
     def __init__(self, parent: QFrame | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("sidebar")
-        self.setFixedWidth(250)
+        self.setFixedWidth(256)
 
         self._setup_ui()
 
     def _setup_ui(self) -> None:
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(15, 20, 15, 20)
+        self.layout.setContentsMargins(16, 20, 16, 16)
+        self.layout.setSpacing(8)
+        brand = QLabel("✳  Kez AI")
+        brand.setObjectName("brand")
+        self.layout.addWidget(brand)
 
         # Заголовок
         self.sidebar_title = QLabel(tr("sidebar.title"))
-        self.layout.addWidget(self.sidebar_title)
+        self.sidebar_title.setObjectName("section_label")
 
         # Кнопка создания нового чата
         self.new_chat_btn = QPushButton(tr("sidebar.new_chat"))
@@ -49,10 +53,6 @@ class SidebarWidget(QFrame):
         self.search_field.setObjectName("search_field")
         self.search_field.setPlaceholderText(tr("sidebar.search_placeholder"))
         self.search_field.setClearButtonEnabled(True)
-        self.search_field.setStyleSheet(
-            "QLineEdit#search_field { background-color: rgba(23, 32, 51, 160); color: #F0EADA;"
-            " border: 1px solid rgba(240, 234, 218, 40); border-radius: 10px; padding: 6px 10px; font-size: 12px; margin-bottom: 8px; }"
-        )
         self._search_timer = QTimer(self)
         self._search_timer.setSingleShot(True)
         self._search_timer.setInterval(350)
@@ -60,9 +60,13 @@ class SidebarWidget(QFrame):
         self.search_field.textChanged.connect(lambda _: self._search_timer.start())
         self.layout.addWidget(self.search_field)
 
+        self.layout.addWidget(self.sidebar_title)
+
         # Список чатов
         self.chat_list_widget = QListWidget()
         self.chat_list_widget.setObjectName("chat_list_widget")
+        self.chat_list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.chat_list_widget.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.chat_list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.chat_list_widget.customContextMenuRequested.connect(self._show_context_menu)
         self.chat_list_widget.itemClicked.connect(self._on_item_clicked)
@@ -80,23 +84,6 @@ class SidebarWidget(QFrame):
         current_title: str = item.text()
 
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #172033;
-                color: #F0EADA;
-                border: 1px solid rgba(240, 234, 218, 50);
-                border-radius: 8px;
-                padding: 4px;
-            }
-            QMenu::item {
-                padding: 6px 20px;
-                border-radius: 4px;
-            }
-            QMenu::item:selected {
-                background-color: rgba(43, 62, 107, 220);
-                color: #FFFFFF;
-            }
-        """)
 
         rename_action = menu.addAction(tr("sidebar.rename"))
         delete_action = menu.addAction(tr("sidebar.delete"))
@@ -192,7 +179,7 @@ class SidebarWidget(QFrame):
     def toggle_sidebar(self) -> None:
         """Анимация открытия / закрытия панели."""
         width = self.width()
-        target_width = 0 if width > 0 else 250
+        target_width = 0 if width > 0 else 256
 
         self.anim_min = QPropertyAnimation(self, b"minimumWidth")
         self.anim_min.setDuration(350)

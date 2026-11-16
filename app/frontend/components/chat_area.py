@@ -1,10 +1,11 @@
 import re
 import html
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QWheelEvent
+from pathlib import Path
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QWheelEvent, QIcon
 from core.i18n import tr
 from PyQt6.QtWidgets import (
-    QScrollArea, QWidget, QVBoxLayout, QHBoxLayout, QTextBrowser, QLabel
+    QScrollArea, QWidget, QVBoxLayout, QHBoxLayout, QTextBrowser, QLabel, QPushButton, QGridLayout, QApplication
 )
 
 
@@ -25,15 +26,15 @@ def markdown_to_clean_html(text: str) -> str:
         # Шапка и монолитное терминальное окно в чисто чёрном стиле CMD (без разрывов цвета между строками)
         block_html: str = (
             '<div style="margin: 8px 0;">'
-            '<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#000000" style="background-color: #000000; border: 1px solid rgba(240, 234, 218, 0.25); border-radius: 6px;">'
+            '<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#18181b" style="background-color: #18181b; border: 1px solid rgba(240, 234, 218, 0.25); border-radius: 6px;">'
             '<tr>'
-            f'<td bgcolor="#161F30" style="background-color: #161F30; padding: 4px 10px; font-family: Consolas, monospace; font-size: 11px; color: #94A3B8; border-bottom: 1px solid rgba(240, 234, 218, 0.15);">'
-            f'💻 {lang.upper()}'
+            f'<td bgcolor="#27272a" style="background-color: #27272a; padding: 4px 10px; font-family: Consolas, monospace; font-size: 11px; color: #94A3B8; border-bottom: 1px solid rgba(240, 234, 218, 0.15);">'
+            f'{lang.upper()}'
             '</td>'
             '</tr>'
             '<tr>'
-            '<td bgcolor="#000000" style="background-color: #000000; padding: 10px;">'
-            f'<pre style="margin: 0; padding: 0; font-family: Consolas, \'Courier New\', monospace; font-size: 13px; color: #4ADE80; background-color: #000000; white-space: pre-wrap; word-break: break-all; line-height: 1.25;"><code>{escaped_code}</code></pre>'
+            '<td bgcolor="#18181b" style="background-color: #18181b; padding: 10px;">'
+            f'<pre style="margin: 0; padding: 0; font-family: Consolas, \'Courier New\', monospace; font-size: 13px; color: #e4e4e7; background-color: #18181b; white-space: pre-wrap; word-break: break-all; line-height: 1.25;"><code>{escaped_code}</code></pre>'
             '</td>'
             '</tr>'
             '</table>'
@@ -53,7 +54,7 @@ def markdown_to_clean_html(text: str) -> str:
     def _extract_inline_code(match: re.Match) -> str:
         raw_code = match.group(1)
         escaped_inline = html.escape(raw_code)
-        inline_html = f'<code style="font-family: Consolas, monospace; font-size: 13px; background-color: rgba(15, 23, 42, 0.9); color: #38BDF8; border: 1px solid rgba(240, 234, 218, 0.25); border-radius: 4px; padding: 2px 6px;">{escaped_inline}</code>'
+        inline_html = f'<code style="font-family: Consolas, monospace; font-size: 13px; background-color: rgba(15, 23, 42, 0.9); color: #a99af8; border: 1px solid rgba(240, 234, 218, 0.25); border-radius: 4px; padding: 2px 6px;">{escaped_inline}</code>'
         idx = len(inline_codes)
         inline_codes.append(inline_html)
         return f"@@@INLINECODE{idx}@@@"
@@ -142,6 +143,8 @@ class ChatAreaWidget(QScrollArea):
     Поддерживает выделение, копирование, терминальные блоки кода и плавную прокрутку колесиком.
     """
 
+    suggestion_selected = pyqtSignal(str)
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("chat_area")
@@ -158,8 +161,95 @@ class ChatAreaWidget(QScrollArea):
         self.content_widget = QWidget()
         self.content_widget.setObjectName("chat_content")
         self.chat_layout = QVBoxLayout(self.content_widget)
+        self.chat_layout.setSpacing(20)
+        self.chat_layout.setContentsMargins(24, 24, 24, 24)
         self.chat_layout.addStretch()
         self.setWidget(self.content_widget)
+        self._setup_welcome()
+
+    def _setup_welcome(self) -> None:
+        self.welcome = QWidget(self.viewport())
+        layout = QVBoxLayout(self.welcome)
+        layout.setSpacing(16)
+        mark = QLabel("✳")
+        mark.setObjectName("welcome_mark")
+        mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(mark)
+        self.welcome_title = QLabel()
+        self.welcome_title.setObjectName("welcome_title")
+        self.welcome_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.welcome_title)
+        self.welcome_subtitle = QLabel()
+        self.welcome_subtitle.setObjectName("welcome_subtitle")
+        self.welcome_subtitle.setWordWrap(True)
+        self.welcome_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.welcome_subtitle)
+        grid = QGridLayout()
+        grid.setSpacing(10)
+        self.suggestions = []
+        for index, key in enumerate(("write", "learn", "plan", "code")):
+            button = QPushButton()
+            button.setObjectName("suggestion")
+            icon_path = Path(__file__).resolve().parents[1] / "assets" / "icons" / f"{key}.svg"
+            button.setIcon(QIcon(str(icon_path)))
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.clicked.connect(lambda _, k=key: self.suggestion_selected.emit(tr("ui.prompt_" + k)))
+            grid.addWidget(button, index // 2, index % 2)
+            self.suggestions.append((key, button))
+        layout.addSpacing(12)
+        layout.addLayout(grid)
+        self.retranslate_ui()
+
+    def retranslate_ui(self) -> None:
+        self.welcome_title.setText(tr("ui.welcome_title"))
+        self.welcome_subtitle.setText(tr("ui.welcome_subtitle"))
+        for key, button in self.suggestions:
+            button.setText(tr("ui.suggest_" + key))
+        for button in self.content_widget.findChildren(QPushButton, "copy_btn"):
+            button.setText(tr("ui.copy"))
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        width = self.viewport().width()
+        margin = max(16, (width - 800) // 2)
+        self.chat_layout.setContentsMargins(margin, 24, margin, 24)
+        if hasattr(self, "welcome"):
+            w = min(580, max(0, width - 24))
+            h = min(320, self.viewport().height())
+            self.welcome.setGeometry((width-w)//2, max(0, (self.viewport().height()-h)//2 - 20), w, h)
+
+    def _insert_message(self, browser: MessageBrowser, msg_type: str) -> None:
+        self.welcome.hide()
+        card = QWidget()
+        column = QVBoxLayout(card)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(4)
+        if msg_type != "user":
+            author = QLabel("✳  Kez")
+            author.setObjectName("header_title")
+            column.addWidget(author)
+        column.addWidget(browser)
+        copy = QPushButton(tr("ui.copy"))
+        copy.setObjectName("copy_btn")
+        copy.setCursor(Qt.CursorShape.PointingHandCursor)
+        copy.setFixedHeight(28)
+        def copy_message():
+            QApplication.clipboard().setText(browser.property("source_text") or browser.toPlainText())
+            copy.setText(tr("ui.copied"))
+            timer = QTimer(copy)
+            timer.setSingleShot(True)
+            timer.timeout.connect(lambda: copy.setText(tr("ui.copy")))
+            timer.start(1600)
+        copy.clicked.connect(copy_message)
+        column.addWidget(copy, alignment=Qt.AlignmentFlag.AlignLeft)
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        if msg_type == "user":
+            row.addStretch(1)
+            row.addWidget(card, 4)
+        else:
+            row.addWidget(card, 1)
+        self.chat_layout.insertLayout(self.chat_layout.count() - 1, row)
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         """Гарантирует плавную прокрутку колесиком мыши по всему окну чата."""
@@ -176,21 +266,14 @@ class ChatAreaWidget(QScrollArea):
         """Добавляет пузырь сообщения в чат на полную высоту без внутренней прокрутки."""
         browser = MessageBrowser()
         browser.setProperty("msg_type", msg_type)
-        browser.setMaximumWidth(720)
+        browser.setMaximumWidth(800)
 
         formatted_html = markdown_to_clean_html(text)
+        browser.setProperty("source_text", text)
         browser.setHtml(formatted_html)
         browser.update_auto_height()
 
-        layout = QHBoxLayout()
-        if msg_type == "user":
-            layout.addStretch()
-            layout.addWidget(browser)
-        else:
-            layout.addWidget(browser)
-            layout.addStretch()
-
-        self.chat_layout.insertLayout(self.chat_layout.count() - 1, layout)
+        self._insert_message(browser, msg_type)
 
         # Перепроверяем высоту и плавно прокручиваем
         QTimer.singleShot(50, browser.update_auto_height)
@@ -203,18 +286,10 @@ class ChatAreaWidget(QScrollArea):
         """
         browser = MessageBrowser()
         browser.setProperty("msg_type", msg_type)
-        browser.setMaximumWidth(720)
+        browser.setMaximumWidth(800)
         browser.setHtml("")
 
-        layout = QHBoxLayout()
-        if msg_type == "user":
-            layout.addStretch()
-            layout.addWidget(browser)
-        else:
-            layout.addWidget(browser)
-            layout.addStretch()
-
-        self.chat_layout.insertLayout(self.chat_layout.count() - 1, layout)
+        self._insert_message(browser, msg_type)
         buffer: list[str] = []
         return browser, buffer
 
@@ -224,6 +299,7 @@ class ChatAreaWidget(QScrollArea):
         обновляет форматирование и высоту пузыря в реальном времени.
         """
         buffer.append(chunk)
+        browser.setProperty("source_text", "".join(buffer))
         full_text: str = "".join(buffer)
         formatted_html: str = markdown_to_clean_html(full_text)
         browser.setHtml(formatted_html)
@@ -235,6 +311,7 @@ class ChatAreaWidget(QScrollArea):
         Добавляет в чат интерактивную карточку сгенерированного изображения
         с контекстным меню 'Скопировать' и 'Скачать'.
         """
+        self.welcome.hide()
         from app.frontend.components.chat_image_widget import ChatImageWidget
         image_widget = ChatImageWidget(image_path, prompt)
 
@@ -251,6 +328,7 @@ class ChatAreaWidget(QScrollArea):
 
     def add_file_message(self, file_path: str, sender: str = "ai") -> None:
         """Добавляет в чат карточку экспортированного документа (Открыть / Папка / Сохранить как)."""
+        self.welcome.hide()
         from app.frontend.components.chat_file_widget import ChatFileWidget
         file_widget = ChatFileWidget(file_path)
 
@@ -270,6 +348,7 @@ class ChatAreaWidget(QScrollArea):
         if self._typing_widget is not None:
             return
 
+        self.welcome.hide()
         lbl = QLabel(f"{tr('chat.typing')} •")
         lbl.setProperty("msg_type", "typing")
         lbl.setStyleSheet("/* update */")
@@ -309,6 +388,7 @@ class ChatAreaWidget(QScrollArea):
     def clear_messages(self) -> None:
         """Очищает все сообщения в чате."""
         self.hide_typing_indicator()
+        self.welcome.show()
         while self.chat_layout.count() > 1:
             child = self.chat_layout.takeAt(0)
             if child.widget():
