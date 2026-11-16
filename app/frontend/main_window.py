@@ -6,7 +6,7 @@ from qasync import asyncSlot
 from PyQt6.QtCore import Qt, QTimer, QSize
 from PyQt6.QtGui import QIcon, QAction, QDragEnterEvent, QDropEvent, QCloseEvent
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QSystemTrayIcon, QMenu, QApplication
+    QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QSystemTrayIcon, QMenu, QApplication, QLabel
 )
 
 from Kez.kez import KezAgent
@@ -31,17 +31,7 @@ FRONTEND_DIR: str = os.path.dirname(os.path.abspath(__file__))
 REMINDER_CHECK_INTERVAL_MS: int = 15_000
 
 
-def apply_theme(theme: str) -> None:
-    """Применяет тему: базовый style.qss + переопределения style_light.qss для светлой темы."""
-    stylesheet: str = ""
-    for name in ("style.qss", "style_light.qss" if theme == "light" else ""):
-        path: str = os.path.join(FRONTEND_DIR, name) if name else ""
-        if path and os.path.exists(path):
-            with open(path, "r", encoding="utf-8") as f:
-                stylesheet += f.read() + "\n"
-    app = QApplication.instance()
-    if app is not None:
-        app.setStyleSheet(stylesheet)
+from app.frontend.theme import apply_theme
 
 
 class KezMainWindow(QMainWindow):
@@ -54,7 +44,8 @@ class KezMainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(tr("main.title"))
-        self.resize(1100, 750)
+        self.resize(1200, 820)
+        self.setMinimumSize(760, 580)
         self.setAcceptDrops(True)
 
         # Директории ресурсов
@@ -109,21 +100,31 @@ class KezMainWindow(QMainWindow):
 
         # 2. Правая рабочая область (Видео + Чат + Ввод)
         self.right_widget = QWidget()
+        self.right_widget.setObjectName("workspace")
         self.right_layout = QVBoxLayout(self.right_widget)
-        self.right_layout.setContentsMargins(20, 20, 20, 20)
-        self.right_layout.setSpacing(15)
+        self.right_layout.setContentsMargins(28, 16, 28, 16)
+        self.right_layout.setSpacing(12)
 
         # Верхняя панель (кнопка меню + режим питомца + настройки)
         self.top_bar = QHBoxLayout()
         self.menu_btn = QPushButton("")
-        self.menu_btn.setIcon(QIcon(os.path.join(self.icons_dir, "chats.png")))
-        self.menu_btn.setIconSize(QSize(38, 38))
+        self.menu_btn.setIcon(QIcon(os.path.join(self.icons_dir, "panel.svg")))
+        self.menu_btn.setToolTip(tr("ui.toggle_sidebar"))
+        self.menu_btn.setAccessibleName(tr("ui.toggle_sidebar"))
+        self.menu_btn.setIconSize(QSize(20, 20))
         self.menu_btn.setObjectName("menu_btn")
         self.menu_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.menu_btn.setFixedSize(40, 40)
         self.menu_btn.clicked.connect(self.sidebar.toggle_sidebar)
         self.top_bar.addWidget(self.menu_btn)
 
+        self.header_title = QLabel("Kez AI")
+        self.header_title.setObjectName("header_title")
+        self.top_bar.addWidget(self.header_title)
+        self.model_label = QLabel()
+        self.model_label.setObjectName("model_badge")
+        self.top_bar.addWidget(self.model_label)
+        self._update_model_label()
         self.top_bar.addStretch()
 
         self.pet_btn = QPushButton("🐤")
@@ -135,8 +136,8 @@ class KezMainWindow(QMainWindow):
         self.top_bar.addWidget(self.pet_btn)
 
         self.settings_btn = QPushButton("")
-        self.settings_btn.setIcon(QIcon(os.path.join(self.icons_dir, "settings.png")))
-        self.settings_btn.setIconSize(QSize(38, 38))
+        self.settings_btn.setIcon(QIcon(os.path.join(self.icons_dir, "settings.svg")))
+        self.settings_btn.setIconSize(QSize(20, 20))
         self.settings_btn.setObjectName("settings_btn")
         self.settings_btn.setToolTip(tr("main.settings_tooltip"))
         self.settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -146,10 +147,10 @@ class KezMainWindow(QMainWindow):
 
         self.right_layout.addLayout(self.top_bar)
 
-        # Видео-аватар (компактная высота, чтобы чат занимал максимум пространства)
+        # Видео-аватар в нижней части боковой панели
         self.video_companion = VideoCompanionWidget(self.idle_video_path, self.search_video_path)
-        self.video_companion.setMaximumHeight(260)
-        self.right_layout.addWidget(self.video_companion, stretch=0)
+        self.video_companion.setFixedHeight(130)
+        self.sidebar.layout.addWidget(self.video_companion)
 
         # Область сообщений чата (главный эластичный элемент)
         self.chat_area = ChatAreaWidget()
@@ -161,9 +162,24 @@ class KezMainWindow(QMainWindow):
         self.input_bar.meet_kez_clicked.connect(self.start_onboarding_flow)
         self.input_bar.voice_recorded.connect(self.handle_voice_message)
         self.input_bar.recording_state_changed.connect(lambda _: self._update_wake_pause())
-        self.right_layout.addWidget(self.input_bar)
+        self.input_bar.setMaximumWidth(860)
+        composer_row = QHBoxLayout()
+        composer_row.addStretch()
+        composer_row.addWidget(self.input_bar, stretch=100)
+        composer_row.addStretch()
+        self.right_layout.addLayout(composer_row)
+        self.chat_area.suggestion_selected.connect(self._use_suggestion)
 
         self.main_layout.addWidget(self.right_widget)
+
+    def _update_model_label(self) -> None:
+        model = settings_module.settings.preferred_model
+        self.model_label.setText(model.removeprefix("models/") if model else tr("settings.model_auto"))
+        self.model_label.setToolTip(tr("settings.model"))
+
+    def _use_suggestion(self, text: str) -> None:
+        self.input_bar.input_field.setText(text)
+        self.input_bar.set_focus()
 
     def _setup_pet_and_tray(self) -> None:
         # Режим «питомца»
@@ -252,6 +268,7 @@ class KezMainWindow(QMainWindow):
         language_changed: bool = new_settings.language != settings_module.settings.language
         save_settings(new_settings)
         apply_theme(new_settings.theme)
+        self._update_model_label()
         if language_changed:
             self.retranslate_ui()
 
@@ -271,6 +288,9 @@ class KezMainWindow(QMainWindow):
         self.tray_open_action.setText(tr("tray.open"))
         self.tray_pet_action.setText(tr("tray.pet"))
         self.tray_quit_action.setText(tr("tray.quit"))
+        self._update_model_label()
+        self.menu_btn.setToolTip(tr("ui.toggle_sidebar"))
+        self.chat_area.retranslate_ui()
         self.sidebar.retranslate_ui()
         self.input_bar.retranslate_ui()
         self.pet_window.retranslate_ui()

@@ -3,7 +3,7 @@ import time
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QTimer, QUrl, QEvent, QObject
 from PyQt6.QtGui import QIcon, QKeyEvent, QKeySequence, QGuiApplication, QImage
 from PyQt6.QtMultimedia import QMediaCaptureSession, QAudioInput, QMediaRecorder, QMediaFormat
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QFileDialog
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QFileDialog, QPlainTextEdit, QFrame, QSizePolicy
 from core.logger import logger
 from core.i18n import tr
 from core.constants.file_const import CACHE_AUDIO_DIR, CACHE_FILES_DIR, MAX_ATTACHMENTS
@@ -16,6 +16,36 @@ ATTACH_FILE_PATTERNS: str = (
 
 def attach_file_filter() -> str:
     return f"{tr('input.attach_filter_supported')} ({ATTACH_FILE_PATTERNS});;{tr('input.attach_filter_all')} (*)"
+
+
+class ComposerEdit(QPlainTextEdit):
+    """Multiline editor retaining the input API used by the application."""
+    returnPressed = pyqtSignal()
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setTabChangesFocus(True)
+        self.setFixedHeight(68)
+        self.textChanged.connect(self._resize_to_content)
+
+    def text(self) -> str:
+        return self.toPlainText()
+
+    def setText(self, text: str) -> None:
+        self.setPlainText(text)
+
+    def _resize_to_content(self) -> None:
+        lines = sum(self.document().findBlockByNumber(i).layout().lineCount()
+                    for i in range(self.document().blockCount()))
+        self.setFixedHeight(min(160, max(68, lines * self.fontMetrics().lineSpacing() + 24)))
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and not event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+            if not event.isAutoRepeat():
+                self.returnPressed.emit()
+            event.accept()
+        else:
+            super().keyPressEvent(event)
 
 
 class InputBarWidget(QWidget):
@@ -31,8 +61,6 @@ class InputBarWidget(QWidget):
     def __init__(self, icons_dir: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.icons_dir: str = icons_dir
-        self._glow_step: int = 0
-        self._glow_timer: QTimer | None = None
         self.attachment_paths: list[str] = []
 
         # Запись голоса (STT): сессия захвата микрофона -> .wav в кэше аудио
@@ -47,6 +75,7 @@ class InputBarWidget(QWidget):
         self.main_container_layout = QVBoxLayout(self)
         self.main_container_layout.setContentsMargins(0, 0, 0, 0)
         self.main_container_layout.setSpacing(8)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
         # Контейнер для кнопки знакомства (по центру над полем ввода)
         self.banner_layout = QHBoxLayout()
@@ -64,11 +93,19 @@ class InputBarWidget(QWidget):
         self.banner_layout.addStretch()
         self.main_container_layout.addLayout(self.banner_layout)
 
+        self.composer = QFrame()
+        self.composer.setObjectName("composer")
+        composer_layout = QVBoxLayout(self.composer)
+        composer_layout.setContentsMargins(12, 10, 12, 10)
+        composer_layout.setSpacing(6)
+        self.main_container_layout.addWidget(self.composer)
+
         # Плашка прикреплённого файла (над полем ввода)
         self.attachment_layout = QHBoxLayout()
         self.attachment_layout.setContentsMargins(4, 0, 0, 0)
         self.attachment_label = QLabel("")
-        self.attachment_label.setStyleSheet("color: #F0EADA; font-size: 12px;")
+        self.attachment_label.setObjectName("muted")
+        self.attachment_label.setWordWrap(True)
         self.attachment_label.hide()
         self.attachment_layout.addWidget(self.attachment_label)
 
@@ -76,15 +113,12 @@ class InputBarWidget(QWidget):
         self.attachment_remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.attachment_remove_btn.setFixedSize(22, 22)
         self.attachment_remove_btn.setToolTip(tr("input.remove_attachment"))
-        self.attachment_remove_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #F0EADA; border: none; font-weight: bold; }"
-            "QPushButton:hover { color: #EF4444; }"
-        )
+        self.attachment_remove_btn.setObjectName("action_btn")
         self.attachment_remove_btn.clicked.connect(self.clear_attachment)
         self.attachment_remove_btn.hide()
         self.attachment_layout.addWidget(self.attachment_remove_btn)
         self.attachment_layout.addStretch()
-        self.main_container_layout.addLayout(self.attachment_layout)
+        composer_layout.addLayout(self.attachment_layout)
 
         # Нижняя панель ввода
         self.controls_layout = QHBoxLayout()
@@ -93,31 +127,31 @@ class InputBarWidget(QWidget):
 
         # Кнопка вложений
         self.attach_btn = QPushButton("")
-        self.attach_btn.setIcon(QIcon(os.path.join(self.icons_dir, "files.png")))
-        self.attach_btn.setIconSize(QSize(38, 38))
+        self.attach_btn.setIcon(QIcon(os.path.join(self.icons_dir, "paperclip.svg")))
+        self.attach_btn.setIconSize(QSize(20, 20))
         self.attach_btn.setObjectName("action_btn")
         self.attach_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.attach_btn.setFixedSize(45, 45)
+        self.attach_btn.setFixedSize(36, 36)
         self.attach_btn.setToolTip(tr("input.attach_tooltip"))
         self.attach_btn.clicked.connect(self._on_attach_clicked)
         self.controls_layout.addWidget(self.attach_btn)
 
         # Поле ввода текста
-        self.input_field = QLineEdit()
+        self.input_field = ComposerEdit()
         self.input_field.setObjectName("input_field")
         self.input_field.setPlaceholderText(tr("main.input_placeholder"))
-        self.input_field.setFixedHeight(45)
         self.input_field.returnPressed.connect(self._on_submit)
         self.input_field.installEventFilter(self)
-        self.controls_layout.addWidget(self.input_field)
+        composer_layout.addWidget(self.input_field)
+        self.controls_layout.addStretch()
 
         # Кнопка микрофона
         self.voice_btn = QPushButton("")
-        self.voice_btn.setIcon(QIcon(os.path.join(self.icons_dir, "micro.png")))
-        self.voice_btn.setIconSize(QSize(38, 38))
+        self.voice_btn.setIcon(QIcon(os.path.join(self.icons_dir, "microphone.svg")))
+        self.voice_btn.setIconSize(QSize(20, 20))
         self.voice_btn.setObjectName("action_btn")
         self.voice_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.voice_btn.setFixedSize(45, 45)
+        self.voice_btn.setFixedSize(36, 36)
         self.voice_btn.setToolTip(tr("input.voice_tooltip"))
         self.voice_btn.clicked.connect(self._on_voice_clicked)
         self.controls_layout.addWidget(self.voice_btn)
@@ -126,54 +160,26 @@ class InputBarWidget(QWidget):
         self.send_btn = QPushButton(tr("input.send"))
         self.send_btn.setObjectName("send_btn")
         self.send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.send_btn.setFixedHeight(45)
+        self.send_btn.setFixedHeight(36)
         self.send_btn.clicked.connect(self._on_submit)
         self.controls_layout.addWidget(self.send_btn)
 
-        self.main_container_layout.addLayout(self.controls_layout)
+        composer_layout.addLayout(self.controls_layout)
+        self.hint_label = QLabel(tr("ui.composer_hint"))
+        self.hint_label.setObjectName("composer_hint")
+        self.hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.main_container_layout.addWidget(self.hint_label)
+        self.input_field.setAccessibleName(tr("main.input_placeholder"))
+        self.attach_btn.setAccessibleName(tr("input.attach_tooltip"))
+        self.voice_btn.setAccessibleName(tr("input.voice_tooltip"))
 
     def show_meet_button(self) -> None:
-        """Показывает кнопку знакомства и запускает неяркую пульсацию темными тонами."""
+        """Показывает кнопку знакомства с Kez."""
         self.meet_btn.show()
-        if self._glow_timer is None:
-            self._glow_timer = QTimer(self)
-            self._glow_timer.setInterval(120)
-            self._glow_timer.timeout.connect(self._pulse_glow)
-        self._glow_timer.start()
 
     def hide_meet_button(self) -> None:
-        """Скрывает кнопку знакомства и останавливает таймер."""
-        if self._glow_timer and self._glow_timer.isActive():
-            self._glow_timer.stop()
+        """Скрывает кнопку знакомства."""
         self.meet_btn.hide()
-
-    def _pulse_glow(self) -> None:
-        """Плавно меняет темные цвета фона кнопки для создания ненавязчивого мерцания."""
-        # Колебание синей составляющей в диапазоне темных цветов (RGB: 18..35, 26..48, 45..75)
-        self._glow_step = (self._glow_step + 1) % 40
-        factor = self._glow_step if self._glow_step <= 20 else (40 - self._glow_step)
-        
-        r = 18 + int(factor * 0.7)
-        g = 26 + int(factor * 1.0)
-        b = 48 + int(factor * 1.3)
-        border_alpha = 40 + int(factor * 4.0)
-        
-        style = f"""
-            QPushButton#meet_kez_btn {{
-                background-color: rgb({r}, {g}, {b});
-                color: #F0EADA;
-                border: 1px solid rgba(240, 234, 218, {border_alpha});
-                border-radius: 17px;
-                padding: 6px 18px;
-                font-weight: bold;
-                font-size: 13px;
-            }}
-            QPushButton#meet_kez_btn:hover {{
-                background-color: rgb({r + 15}, {g + 20}, {b + 30});
-                border: 1px solid rgba(240, 234, 218, 180);
-            }}
-        """
-        self.meet_btn.setStyleSheet(style)
 
     def _on_meet_clicked(self) -> None:
         self.hide_meet_button()
@@ -334,6 +340,10 @@ class InputBarWidget(QWidget):
 
     def retranslate_ui(self) -> None:
         """Обновляет тексты после смены языка."""
+        self.hint_label.setText(tr("ui.composer_hint"))
+        self.input_field.setAccessibleName(tr("main.input_placeholder"))
+        self.attach_btn.setAccessibleName(tr("input.attach_tooltip"))
+        self.voice_btn.setAccessibleName(tr("input.voice_tooltip"))
         self.meet_btn.setText(tr("input.meet_kez"))
         self.attach_btn.setToolTip(tr("input.attach_tooltip"))
         self.attachment_remove_btn.setToolTip(tr("input.remove_attachment"))

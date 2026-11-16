@@ -48,13 +48,6 @@ class ChatImageWidget(QWidget):
             self.image_label.setText(tr("image.load_failed"))
             self.image_label.setStyleSheet("color: #EF4444; padding: 20px;")
 
-        self.image_label.setStyleSheet("""
-            QLabel#chat_image_label {
-                border-radius: 12px;
-                border: 1px solid rgba(240, 234, 218, 0.2);
-                background-color: #0F172A;
-            }
-        """)
 
         layout.addWidget(self.image_label)
         self.setLayout(layout)
@@ -64,26 +57,6 @@ class ChatImageWidget(QWidget):
         Контекстное меню по правому клику мыши: 'Скопировать' и 'Скачать'.
         """
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #1E293B;
-                color: #F8FAFC;
-                border: 1px solid rgba(240, 234, 218, 0.2);
-                border-radius: 8px;
-                padding: 4px;
-                font-family: 'Segoe UI', sans-serif;
-                font-size: 13px;
-            }
-            QMenu::item {
-                padding: 6px 20px;
-                border-radius: 4px;
-            }
-            QMenu::item:selected {
-                background-color: #38BDF8;
-                color: #0F172A;
-                font-weight: 600;
-            }
-        """)
 
         copy_action: QAction = menu.addAction(tr("image.copy"))
         save_action: QAction = menu.addAction(tr("image.save"))
